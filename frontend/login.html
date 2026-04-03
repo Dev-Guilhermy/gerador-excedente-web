@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Acesse o sistema Gerador Excedente para gerenciar e analisar dados com eficiência, dashboards interativos e relatórios inteligentes.">
+    <link rel="stylesheet" href="./styles/login.css">
+    <title>Login - Gerador Excedente</title>
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+
+<body>
+    <!-- ============================= -->
+    <!-- LOGIN.HTML - GERADOR EXCEDENTE -->
+    <!-- ============================= -->
+    <main class="login-container">
+        <h1>Acesso ao sistema</h1>
+        <form id="loginForm">
+            <!-- Compo Email -->
+            <div class="input-box">
+                <input type="email" id="email" required autofocus placeholder=" " aria-describedby="erroEmail">
+                <label for="email">Email</label>
+                <p id="erroEmail" class="erro" role="alert"></p>
+                <i class="bx bx-user icon-user"></i>
+            </div>
+            <!-- Compo Senha -->
+            <div class="input-box">
+                <input type="password" id="senha" required placeholder=" ">
+                <label for="senha">Senha</label>
+                <i class="bx bx-lock icon-lock"></i>
+                <i id="toggleSenha" class="bx bx-show toggle-senha icon-eye"></i>
+            </div>
+            <button type="submit" class="submit-btn">Logar</button>
+            <p id="erroGlobal" class="erro"></p>
+        </form>
+    </main>
+
+    <script src="js/api.js" defer></script>
+    <script src="js/login.js" defer></script>
+</body>
+
+</html>

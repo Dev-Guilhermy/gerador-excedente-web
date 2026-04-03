@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nome VARCHAR(150) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL,
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    tentativas_login INT DEFAULT 0,
+    bloqueado_ate TIMESTAMP,
+    online BOOLEAN DEFAULT FALSE,
+    ultimo_acesso TIMESTAMP,
+    perfil VARCHAR(20) DEFAULT 'USER',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
+);

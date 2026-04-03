@@ -1,5 +1,8 @@
-# Maven / Java
+# Maven
+target/
 backend/target/
+
+# Logs
 *.log
 
 # IDEs
