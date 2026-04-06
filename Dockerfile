@@ -1,7 +1,7 @@
 # =========================
 # ETAPA 1 - BUILD (Maven)
 # =========================
-FROM maven:3.9.6-eclipse-temurin-17 AS build
+FROM maven:3.9.9-eclipse-temurin-21 AS build
 
 WORKDIR /app
 
@@ -10,6 +10,8 @@ COPY backend /app
 
 # Compila o projeto (sem testes)
 RUN mvn clean package -DskipTests
+
+RUN java -version
 
 # =========================
 # ETAPA 2 - RUNTIME (Java)
