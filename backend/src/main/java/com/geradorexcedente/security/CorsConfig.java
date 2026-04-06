@@ -23,7 +23,7 @@ public class CorsConfig {
 
                 // =========== EM PRODUÇÂO ===========
                 config.setAllowedOrigins(List.of(
-                                "https://gerador-excedente-web.onrender.com"));
+                                "https://gerador-excedente.netlify.app"));
 
                 config.setAllowedMethods(List.of(
                                 "GET",
