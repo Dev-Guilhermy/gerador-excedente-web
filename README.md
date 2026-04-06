@@ -3,60 +3,60 @@
 ![Java](https://img.shields.io/badge/Java-17+-red)
 ![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
 ![Build](https://img.shields.io/badge/build-Maven-blue)
+![Frontend](https://img.shields.io/badge/frontend-HTML%2FCSS%2FJS-orange)
+![Deploy](https://img.shields.io/badge/deploy-Render%20%7C%20Netlify-purple)
 ![License](https://img.shields.io/badge/license-MIT-lightgrey)
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
 
-Sistema completo para **upload, processamento e classificação de dados via CSV**, com autenticação, regras de negócio e interface web integrada.
+Sistema completo para **upload, processamento e classificação de dados via CSV**, com autenticação JWT, API REST e interface web moderna.
 
 ---
 
-# 📌 VISÃO GERAL DO SISTEMA
+# 📌 VISÃO GERAL
 
-O **Gerador de Excedente Web** foi desenvolvido para:
+O sistema realiza:
 
-* 🔐 Autenticar usuários
-* 📥 Receber arquivos CSV
-* ⚙️ Processar dados com regras de negócio
-* 📊 Classificar registros como:
+* 🔐 Login com autenticação JWT
+* 📥 Upload de arquivos CSV
+* ⚙️ Processamento de dados no backend
+* 📊 Classificação automática:
 
   * ✅ APTO A DESCONTO
   * ❌ NÃO APTO A DESCONTO
-* 📤 Retornar resultados processados
+* 📤 Retorno estruturado para o frontend
 
-Arquitetura:
+---
+
+# 🏗️ ARQUITETURA
 
 ```
-Frontend (HTML/CSS/JS)
-        ↓
-API REST (Spring Boot)
-        ↓
-Processamento CSV + Regras de Negócio
+Frontend (Netlify)
+      ↓
+API REST (Render)
+      ↓
+Spring Boot + Regras de Negócio
 ```
 
 ---
 
-# 🔐 AUTENTICAÇÃO (JWT)
+# 🔐 AUTENTICAÇÃO JWT
 
-O sistema utiliza autenticação baseada em **JWT (JSON Web Token)**.
+## Fluxo
 
-## 🔑 Fluxo de Login
-
-1. Usuário acessa `login.html`
-2. Envia credenciais para API
-3. Backend valida
-4. Retorna token JWT
-5. Frontend armazena token
-6. Token é enviado nas próximas requisições
+1. Usuário faz login
+2. Backend valida credenciais
+3. Retorna token JWT
+4. Frontend armazena token
+5. Token é enviado nas requisições
 
 ---
 
-## 📡 Endpoint de Login
+## Endpoint
 
 ```http
 POST /auth/login
 ```
 
-### 📥 Request
+### Request
 
 ```json
 {
@@ -65,90 +65,302 @@ POST /auth/login
 }
 ```
 
-### 📤 Response
+### Response
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "token": "JWT_TOKEN"
 }
 ```
 
 ---
 
-## 🔒 Uso do Token
+# 📡 API - PROCESSAMENTO
 
-Todas as requisições protegidas devem conter:
-
-```http
-Authorization: Bearer SEU_TOKEN_AQUI
-```
-
----
-
-# 📡 DOCUMENTAÇÃO DA API
-
-## 🔹 Processamento de CSV
+## Endpoint
 
 ```http
 POST /api/processar
 ```
 
-### Headers
+Este é o **principal endpoint do sistema**, responsável por receber o arquivo CSV, processar os dados e retornar a classificação.
 
-```http
-Authorization: Bearer TOKEN
-Content-Type: multipart/form-data
+---
+
+## 🔄 Fluxo Interno do Método `processar`
+
+O método `processar` possui uma lógica mais avançada do que uma simples leitura de CSV. Ele realiza **detecção de tipo de arquivo, aplicação de filtros, agregação e cálculo estatístico**.
+
+---
+
+### 1. 📥 Recebimento do arquivo
+
+* Arquivo recebido via `MultipartFile`
+* Já validado no controller (tamanho, tipo, extensão)
+
+---
+
+### 2. 📖 Leitura do Cabeçalho
+
+* Primeira linha é lida e normalizada
+* Remove aspas e converte para maiúsculo
+
+```java
+header = header.replace("\"", "").toUpperCase();
 ```
 
-### 📥 Request
+---
 
-* Upload de arquivo CSV
+### 3. 🧠 Detecção de Tipo de CSV
 
-### 📤 Response (Exemplo)
+O sistema identifica automaticamente:
+
+#### ✔ CSV Corporativo
+
+Contém colunas como:
+
+* DATA
+* TELEEVENTO
+* TIPO DE COMUNICAÇÃO
+
+#### ✔ CSV Simples
+
+* Apenas colunas básicas (placa + evento)
+
+---
+
+### 4. 🔄 Leitura Linha a Linha
+
+* Usa regex para suportar CSV com aspas
+
+```java
+String separadorCSV = ",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)";
+```
+
+---
+
+### 5. 📊 Processamento (CSV Corporativo)
+
+Para cada linha:
+
+* Extrai:
+
+  * `placa`
+  * `dataEvento`
+  * `teleevento`
+  * `intervaloTransmissao`
+  * `comunicacao`
+
+---
+
+### 6. 🔍 Aplicação de Filtros
+
+#### Filtro de Comunicação
+
+* GPRS
+* SATÉLITE
+* EM MEMÓRIA
+
+Normalização aplicada:
+
+* Remove acentos
+* Ignora maiúsculas/minúsculas
+
+---
+
+#### Filtro de Teleevento
+
+```text
+Se filtro informado → mantém apenas eventos iguais
+```
+
+---
+
+### 7. ⏱️ Controle de Período
+
+O sistema calcula automaticamente:
+
+* 📅 Data inicial (menor data encontrada)
+* 📅 Data final (maior data encontrada)
+
+---
+
+### 8. 🔥 Captura do Intervalo de Transmissão
+
+* Capturado diretamente do CSV
+* Exemplo: "2 minutos"
+* Apenas o primeiro valor válido é utilizado
+
+---
+
+### 9. 📈 Contabilização de Eventos
+
+Agrupa eventos por nome:
+
+```text
+TELEEVENTO → quantidade de ocorrências
+```
+
+---
+
+### 10. 📊 Cálculo de Percentual
+
+Para cada evento:
+
+```text
+percentual = (quantidade * 100) / total
+```
+
+---
+
+### 11. 📦 Montagem do Resultado
+
+O sistema retorna um `ResultadoDTO` contendo:
 
 ```json
-[
-  {
-    "id": 1,
-    "nome": "Produto A",
-    "valor": 10.5,
-    "quantidade": 2,
-    "status": "APTO A DESCONTO"
-  },
-  {
-    "id": 2,
-    "nome": "Produto B",
-    "valor": 5.0,
-    "quantidade": 1,
-    "status": "NAO APTO A DESCONTO"
-  }
-]
+{
+  "placa": "ABC1234",
+  "total": 100,
+  "intervaloTransmissao": "2 minutos",
+  "eventos": [
+    {
+      "evento": "IGNICAO LIGADA",
+      "qtd": 50,
+      "percentual": 50.0,
+      "comunicacao": "GPRS"
+    }
+  ],
+  "dataInicio": "01/01/2024 10:00",
+  "dataFim": "01/01/2024 12:00",
+  "nomeArquivo": "arquivo.csv"
+}
 ```
 
 ---
 
-# 📊 REGRAS DE NEGÓCIO (CLASSIFICAÇÃO)
+### 12. ❗ Validação Final
 
-Durante o processamento, cada registro é analisado.
+Se nenhum dado válido for encontrado:
 
-## 🧠 Critérios de Classificação
-
-Exemplo de lógica aplicada:
-
-* Se `valor * quantidade >= limite mínimo`
-
-  * → ✅ APTO A DESCONTO
-* Caso contrário:
-
-  * → ❌ NÃO APTO A DESCONTO
-
-> ⚠️ O valor limite pode ser configurável no backend.
+```text
+"Nenhum dado encontrado com os filtros aplicados"
+```
 
 ---
 
-# 📥 FORMATO DO CSV
+## ⚠️ Tratamento de Erros
 
-## Estrutura esperada:
+Possíveis cenários tratados pelo método:
+
+* Arquivo vazio
+* Formato inválido
+* Erro de leitura
+* Dados inconsistentes
+
+Exemplo de erro:
+
+```json
+{
+  "erro": "Arquivo inválido ou vazio"
+}
+```
+
+---
+
+# 📊 REGRA DE NEGÓCIO
+
+A classificação **APTO A DESCONTO / NÃO APTO A DESCONTO NÃO é automática no backend** — ela é baseada em **análise manual do analista**, utilizando os dados retornados pelo sistema.
+
+O sistema fornece toda a base analítica necessária para essa decisão.
+
+---
+
+## 🧠 CRITÉRIO REAL DE ANÁLISE
+
+A validação é baseada na presença e predominância de eventos relacionados a:
+
+```text
+JAMER / JAMMER / DESLIGAMENTO DE JAMER
+```
+
+---
+
+## 🔍 REGRA DE CLASSIFICAÇÃO
+
+Após o processamento, o analista deve observar os percentuais retornados.
+
+### ❌ NÃO APTO A DESCONTO
+
+Se existir evento relacionado a **JAMER**, porém ele **NÃO for o evento predominante**:
+
+Exemplo:
+
+```text
+Evento A → 80%
+JAMER → 20%
+```
+
+Resultado:
+
+```text
+NÃO APTO A DESCONTO
+```
+
+---
+
+### ✅ APTO A DESCONTO
+
+Se o evento relacionado a **JAMER for o maior percentual entre todos os eventos**:
+
+Exemplo:
+
+```text
+JAMER → 60%
+Evento B → 40%
+```
+
+Resultado:
+
+```text
+APTO A DESCONTO
+```
+
+---
+
+## 📌 Observações Importantes
+
+* O sistema **não depende de nome exato**, pois o analista deve considerar variações como:
+
+  * "JAMER"
+  * "JAMMER"
+  * "DESLIGAMENTO DE JAMER"
+  * Qualquer termo relacionado
+
+* A decisão é **contextual e analítica**, não apenas técnica
+
+* O backend fornece:
+
+  * Percentual por evento
+  * Quantidade
+  * Tipo de comunicação
+
+👉 A decisão final é sempre do analista
+
+---
+
+## 📊 Papel do Sistema
+
+O sistema atua como:
+
+✔ Ferramenta de análise
+✔ Consolidador de dados
+✔ Base para tomada de decisão
+
+NÃO como motor automático de decisão.
+
+---
+
+# 📥 CSV SUPORTADO
 
 ```csv
 id,nome,valor,quantidade
@@ -156,38 +368,22 @@ id,nome,valor,quantidade
 2,Produto B,5.0,1
 ```
 
-## Regras:
-
-* Separador: vírgula `,`
-* Primeira linha: cabeçalho obrigatório
-* Tipos:
-
-  * id → inteiro
-  * nome → texto
-  * valor → decimal
-  * quantidade → inteiro
-
 ---
 
-# 🌐 FRONTEND (COMPORTAMENTO)
+# 🌐 FRONTEND
 
-## 🔑 Login
+## Login
 
-* Tela: `login.html`
-* Envia credenciais via `fetch`
-* Armazena token no `localStorage`
+* Captura usuário/senha
+* Armazena token no localStorage
 
-## 📤 Upload CSV
-
-* Tela principal: `index.html`
-* Seleção de arquivo
-* Envio via `FormData`
+## Upload
 
 ```javascript
 const formData = new FormData();
 formData.append("file", file);
 
-fetch("http://localhost:8080/api/processar", {
+fetch("https://SUA-API.onrender.com/api/processar", {
   method: "POST",
   headers: {
     Authorization: "Bearer " + token
@@ -196,61 +392,97 @@ fetch("http://localhost:8080/api/processar", {
 });
 ```
 
-## 📊 Exibição
+---
 
-* Resultados renderizados dinamicamente
-* Classificação exibida visualmente
+# ⚙️ BACKEND
+
+Camadas:
+
+* Controller
+* Service
+* CSV Parser
+* Security (JWT)
+
+Fluxo:
+
+1. Recebe CSV
+2. Converte dados
+3. Aplica regra
+4. Retorna JSON
 
 ---
 
-# ⚙️ BACKEND (DETALHES)
+# 🚀 DEPLOY
 
-## Camadas
+## 🔥 BACKEND - RENDER
 
-* Controller → recebe requisições
-* Service → regras de negócio
-* Parser CSV → leitura e transformação
-* Security → autenticação JWT
+### 1. Criar conta
 
-## Fluxo interno
+[https://render.com](https://render.com)
 
-1. Recebe arquivo
-2. Faz parsing CSV
-3. Converte dados
-4. Aplica regra de negócio
-5. Retorna JSON
+### 2. Novo Web Service
 
----
+* Conectar GitHub
+* Selecionar repositório
 
-# ▶️ EXECUÇÃO
+### 3. Configuração
 
-## Backend
-
-```bash
-cd backend
-mvn spring-boot:run
-```
-
-## Frontend
-
-Abrir:
+* Build Command:
 
 ```
-frontend/index.html
+mvn clean install
 ```
 
----
+* Start Command:
 
-# 🐳 DOCKER
+```
+java -jar target/*.jar
+```
 
-```bash
-docker build -t gerador-excedente .
-docker run -p 8080:8080 gerador-excedente
+### 4. Variáveis de ambiente
+
+```
+JAVA_VERSION=17
+PORT=8080
+```
+
+### 5. Deploy
+
+Após deploy:
+
+```
+https://seu-backend.onrender.com
 ```
 
 ---
 
-# ⚡ CI/CD (GitHub Actions)
+## 🌐 FRONTEND - NETLIFY
+
+### 1. Criar conta
+
+[https://netlify.com](https://netlify.com)
+
+### 2. Deploy
+
+* Importar repositório
+* Definir pasta: `frontend`
+
+### 3. Configuração
+
+* Build command: (vazio)
+* Publish directory: `frontend`
+
+### 4. Ajustar API URL
+
+No JS:
+
+```javascript
+const API_URL = "https://seu-backend.onrender.com";
+```
+
+---
+
+# ⚡ CI/CD
 
 ```yaml
 name: CI
@@ -266,29 +498,26 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Java
-        uses: actions/setup-java@v3
+      - uses: actions/setup-java@v3
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Build
-        run: mvn clean install
+      - run: mvn clean install
 ```
 
 ---
 
 # 📈 ROADMAP
 
-* [ ] Swagger UI integrado
-* [ ] Banco de dados
-* [ ] Logs avançados
-* [ ] Dashboard analítico
-* [ ] Controle de usuários
+* Swagger (SpringDoc)
+* Banco de dados
+* Dashboard
+* Logs avançados
 
 ---
 
-# 🐛 TROUBLESHOOTING
+# 🐛 PROBLEMAS COMUNS
 
 ## CORS
 
@@ -298,24 +527,21 @@ jobs:
 
 ## Token inválido
 
-* Verifique expiração
-* Confirme header Authorization
+* Verifique header Authorization
 
 ---
 
 # 👨‍💻 AUTOR
 
-**Guilhermy Alves**
+Guilhermy Alves
 
 ---
 
 # ⭐ CONTRIBUA
 
-Se este projeto te ajudou:
-
-* ⭐ Star no repositório
-* 🍴 Fork
-* 🔧 Pull Request
+* Fork
+* PR
+* Star
 
 ---
 
