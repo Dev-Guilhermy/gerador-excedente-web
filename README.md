@@ -1,215 +1,324 @@
 # 🚀 Gerador de Excedente Web
 
-Aplicação web completa para processamento e geração de dados excedentes, composta por **frontend (HTML, CSS, JS)** e **backend em Spring Boot**.
+![Java](https://img.shields.io/badge/Java-17+-red)
+![Spring Boot](https://img.shields.io/badge/SpringBoot-3.x-brightgreen)
+![Build](https://img.shields.io/badge/build-Maven-blue)
+![License](https://img.shields.io/badge/license-MIT-lightgrey)
+![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
+
+Sistema completo para **upload, processamento e classificação de dados via CSV**, com autenticação, regras de negócio e interface web integrada.
 
 ---
 
-## 📌 Visão Geral
+# 📌 VISÃO GERAL DO SISTEMA
 
-Este projeto foi desenvolvido com o objetivo de:
+O **Gerador de Excedente Web** foi desenvolvido para:
 
-* Processar arquivos (ex: CSV)
-* Gerar dados tratados/excedentes
-* Exibir resultados via interface web
-* Permitir integração entre frontend e backend
+* 🔐 Autenticar usuários
+* 📥 Receber arquivos CSV
+* ⚙️ Processar dados com regras de negócio
+* 📊 Classificar registros como:
 
-Arquitetura baseada em:
+  * ✅ APTO A DESCONTO
+  * ❌ NÃO APTO A DESCONTO
+* 📤 Retornar resultados processados
 
-* 🌐 Frontend: HTML + CSS + JavaScript
-* ⚙️ Backend: Java + Spring Boot
-* 🐳 Suporte a Docker
-
----
-
-## 🏗️ Estrutura do Projeto
+Arquitetura:
 
 ```
-gerador-excedente-web/
-│
-├── backend/                # API Spring Boot
-│   ├── src/
-│   ├── pom.xml
-│   └── README.txt
-│
-├── frontend/               # Interface web
-│   ├── index.html
-│   ├── login.html
-│   └── assets/
-│
-├── .github/                # Configurações de CI/CD
-├── Dockerfile              # Containerização
-├── .gitignore
-└── README.md
+Frontend (HTML/CSS/JS)
+        ↓
+API REST (Spring Boot)
+        ↓
+Processamento CSV + Regras de Negócio
 ```
 
 ---
 
-## ⚙️ Pré-requisitos
+# 🔐 AUTENTICAÇÃO (JWT)
 
-Antes de rodar o projeto, você precisa ter instalado:
+O sistema utiliza autenticação baseada em **JWT (JSON Web Token)**.
 
-* Java 17+
-* Maven
-* Node.js (opcional, caso evolua frontend)
-* Docker (opcional)
+## 🔑 Fluxo de Login
+
+1. Usuário acessa `login.html`
+2. Envia credenciais para API
+3. Backend valida
+4. Retorna token JWT
+5. Frontend armazena token
+6. Token é enviado nas próximas requisições
 
 ---
 
-## ▶️ Como Executar o Projeto
+## 📡 Endpoint de Login
 
-### 🔹 Backend (Spring Boot)
+```http
+POST /auth/login
+```
 
-1. Acesse a pasta:
+### 📥 Request
+
+```json
+{
+  "username": "admin",
+  "password": "123456"
+}
+```
+
+### 📤 Response
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+---
+
+## 🔒 Uso do Token
+
+Todas as requisições protegidas devem conter:
+
+```http
+Authorization: Bearer SEU_TOKEN_AQUI
+```
+
+---
+
+# 📡 DOCUMENTAÇÃO DA API
+
+## 🔹 Processamento de CSV
+
+```http
+POST /api/processar
+```
+
+### Headers
+
+```http
+Authorization: Bearer TOKEN
+Content-Type: multipart/form-data
+```
+
+### 📥 Request
+
+* Upload de arquivo CSV
+
+### 📤 Response (Exemplo)
+
+```json
+[
+  {
+    "id": 1,
+    "nome": "Produto A",
+    "valor": 10.5,
+    "quantidade": 2,
+    "status": "APTO A DESCONTO"
+  },
+  {
+    "id": 2,
+    "nome": "Produto B",
+    "valor": 5.0,
+    "quantidade": 1,
+    "status": "NAO APTO A DESCONTO"
+  }
+]
+```
+
+---
+
+# 📊 REGRAS DE NEGÓCIO (CLASSIFICAÇÃO)
+
+Durante o processamento, cada registro é analisado.
+
+## 🧠 Critérios de Classificação
+
+Exemplo de lógica aplicada:
+
+* Se `valor * quantidade >= limite mínimo`
+
+  * → ✅ APTO A DESCONTO
+* Caso contrário:
+
+  * → ❌ NÃO APTO A DESCONTO
+
+> ⚠️ O valor limite pode ser configurável no backend.
+
+---
+
+# 📥 FORMATO DO CSV
+
+## Estrutura esperada:
+
+```csv
+id,nome,valor,quantidade
+1,Produto A,10.5,2
+2,Produto B,5.0,1
+```
+
+## Regras:
+
+* Separador: vírgula `,`
+* Primeira linha: cabeçalho obrigatório
+* Tipos:
+
+  * id → inteiro
+  * nome → texto
+  * valor → decimal
+  * quantidade → inteiro
+
+---
+
+# 🌐 FRONTEND (COMPORTAMENTO)
+
+## 🔑 Login
+
+* Tela: `login.html`
+* Envia credenciais via `fetch`
+* Armazena token no `localStorage`
+
+## 📤 Upload CSV
+
+* Tela principal: `index.html`
+* Seleção de arquivo
+* Envio via `FormData`
+
+```javascript
+const formData = new FormData();
+formData.append("file", file);
+
+fetch("http://localhost:8080/api/processar", {
+  method: "POST",
+  headers: {
+    Authorization: "Bearer " + token
+  },
+  body: formData
+});
+```
+
+## 📊 Exibição
+
+* Resultados renderizados dinamicamente
+* Classificação exibida visualmente
+
+---
+
+# ⚙️ BACKEND (DETALHES)
+
+## Camadas
+
+* Controller → recebe requisições
+* Service → regras de negócio
+* Parser CSV → leitura e transformação
+* Security → autenticação JWT
+
+## Fluxo interno
+
+1. Recebe arquivo
+2. Faz parsing CSV
+3. Converte dados
+4. Aplica regra de negócio
+5. Retorna JSON
+
+---
+
+# ▶️ EXECUÇÃO
+
+## Backend
 
 ```bash
 cd backend
-```
-
-2. Execute:
-
-**Linux/Mac:**
-
-```bash
 mvn spring-boot:run
 ```
 
-**Windows:**
+## Frontend
 
-```bash
-mvnw spring-boot:run
-```
-
-3. A API estará disponível em:
+Abrir:
 
 ```
-http://localhost:8080
+frontend/index.html
 ```
 
 ---
 
-### 🔹 Frontend
-
-1. Acesse a pasta:
-
-```bash
-cd frontend
-```
-
-2. Abra o arquivo no navegador:
-
-```bash
-index.html
-```
-
-Ou utilize uma extensão como Live Server no VS Code.
-
----
-
-## 🔗 Integração Frontend ↔ Backend
-
-O frontend realiza requisições HTTP para o backend, geralmente via:
-
-```javascript
-fetch("http://localhost:8080/api/..." )
-```
-
-Certifique-se de que:
-
-* O backend esteja rodando
-* O CORS esteja configurado corretamente
-
----
-
-## 🐳 Executando com Docker
-
-1. Build da imagem:
+# 🐳 DOCKER
 
 ```bash
 docker build -t gerador-excedente .
-```
-
-2. Rodar container:
-
-```bash
 docker run -p 8080:8080 gerador-excedente
 ```
 
 ---
 
-## 📂 Funcionalidades
+# ⚡ CI/CD (GitHub Actions)
 
-* Upload e processamento de arquivos
-* Geração de dados excedentes
-* Interface de login
-* Comunicação com API REST
-* Estrutura preparada para expansão
+```yaml
+name: CI
 
----
+on:
+  push:
+    branches: ["main"]
 
-## 🧠 Tecnologias Utilizadas
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-* Java
-* Spring Boot
-* Maven
-* HTML5
-* CSS3
-* JavaScript
-* Docker
+    steps:
+      - uses: actions/checkout@v3
 
----
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
 
-## 📈 Melhorias Futuras
-
-* Autenticação completa (JWT)
-* Banco de dados (PostgreSQL/MySQL)
-* Upload de arquivos robusto
-* Dashboard com gráficos
-* Testes automatizados
+      - name: Build
+        run: mvn clean install
+```
 
 ---
 
-## 🐛 Possíveis Problemas
+# 📈 ROADMAP
 
-### Erro ao rodar Maven
+* [ ] Swagger UI integrado
+* [ ] Banco de dados
+* [ ] Logs avançados
+* [ ] Dashboard analítico
+* [ ] Controle de usuários
 
-Verifique:
+---
 
-* Java instalado corretamente
-* Variável `JAVA_HOME`
+# 🐛 TROUBLESHOOTING
 
-### Erro de CORS
-
-Adicionar no backend:
+## CORS
 
 ```java
 @CrossOrigin(origins = "*")
 ```
 
----
+## Token inválido
 
-## 🤝 Contribuição
-
-Sinta-se livre para contribuir:
-
-1. Fork o projeto
-2. Crie uma branch
-3. Commit suas mudanças
-4. Abra um Pull Request
+* Verifique expiração
+* Confirme header Authorization
 
 ---
 
-## 📄 Licença
+# 👨‍💻 AUTOR
 
-Este projeto está sob a licença MIT.
-
----
-
-## 👨‍💻 Autor
-
-Desenvolvido por **Guilhermy Alves**
+**Guilhermy Alves**
 
 ---
 
-## ⭐ Dica
+# ⭐ CONTRIBUA
 
-Se este projeto te ajudou, deixe uma estrela no repositório!
+Se este projeto te ajudou:
+
+* ⭐ Star no repositório
+* 🍴 Fork
+* 🔧 Pull Request
+
+---
+
+# 📄 LICENÇA
+
+MIT
