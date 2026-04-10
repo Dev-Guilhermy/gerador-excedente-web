@@ -12,6 +12,38 @@
   <meta name="description"
     content="Ferramenta web para análise de excedente satelital em comunicações de rastreadores, com base em arquivos CSV. Permite filtros por placa, período e tipo de comunicação." />
 
+
+
+  <!----------------------------------------------------------->
+
+  <!-- ================= OPEN GRAPH ================= -->
+  <meta property="og:title" content="Gerador de Excedente Empresarial Web" />
+  <meta property="og:description"
+    content="Ferramenta interativa para análise de excedente, simulação e tomada de decisão empresarial." />
+
+  <meta property="og:image"
+    content="https://gerador-excedente.netlify.app/assets/images/preview-excedente-1200-630.jpg" />
+
+  <meta property="og:image:secure_url"
+    content="https://gerador-excedente.netlify.app/assets/images/preview-excedente-1200-630.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+
+  <meta property="og:url" content="https://gerador-excedente.netlify.app" />
+  <meta property="og:type" content="website" />
+  <meta property="og:locale" content="pt_BR" />
+  <meta property="og:site_name" content="Gerador de Excedente Web" />
+
+  <!-- ================= TWITTER ================= -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Gerador de Excedente Empresarial Web" />
+  <meta name="twitter:description" content="Simule cenários e analise resultados empresariais de forma visual." />
+  <meta name="twitter:image"
+    content="https://gerador-excedente.netlify.app/assets/images/preview-excedente-1200-630.jpg" />
+
+  <!----------------------------------------------------------->
+
   <meta name="robots" content="index, follow" />
   <meta name="author" content="Equipe de Suporte Especializado" />
 
@@ -35,14 +67,23 @@
   <link rel="stylesheet" href="styles/main.css">
   <script>
     // ==========================================
-    // PROTEÇÃO DE ROTA - VERIFICA TOKEN
+    // 🔐 PROTEÇÃO DE ROTA COM EXCEÇÃO PARA BOTS
     // ==========================================
+    // Esta lógica impede acesso ao sistema sem autenticação.
+    // Porém, permite que bots (WhatsApp, Facebook, etc.)
+    // acessem o conteúdo para gerar preview do link (Open Graph).
+    //
+    // Sem isso, o preview não aparece ao compartilhar o link.
 
-    const token = localStorage.getItem("token");
+    const isBot = /facebookexternalhit|WhatsApp|Slackbot|Twitterbot/i.test(navigator.userAgent);
 
-    // Se não existir token → volta para login
-    if (!token) {
-      window.location.href = "login.html";
+    if (!isBot) {
+      const token = localStorage.getItem("token");
+
+      // Se não existir token → redireciona para login
+      if (!token) {
+        window.location.href = "login.html";
+      }
     }
   </script>
 
