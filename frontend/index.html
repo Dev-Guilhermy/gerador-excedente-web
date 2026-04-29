@@ -63,6 +63,10 @@
   <!-- Apple Touch (iOS) -->
   <link rel="manifest" href="assets/icons/site.webmanifest">
 
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+
   <!-- Estilos -->
   <link rel="stylesheet" href="styles/main.css">
   <script>
@@ -122,134 +126,155 @@
 
     </div>
 
-    <div class="subtitulo-topo">
-      <p>Análise inteligente de CSV</p>
-    </div>
-
-    <div id="statusTopo" class="status-topo">
-      Status: —
-    </div>
-
   </header>
+
+  <!-- 🔽 SEGUNDA LINHA DO TOPO -->
+  <section class="topo-linha-2 fade-in delay-2" aria-label="Status do sistema">
+
+    <!-- 🧾 SUBTÍTULO / MENSAGEM DINÂMICA -->
+    <div class="subtitulo-topo">
+      <p id="typing-text" aria-live="polite"></p>
+    </div>
+
+    <!-- 📊 STATUS -->
+    <div id="statusTopo" class="status-topo" role="status" aria-live="polite">
+      Status: INDEFINIDO
+    </div>
+
+  </section>
 
   <!-- ================= UPLOAD ================= -->
   <main>
-    <div class="container fade-in delay-2">
-      <section class="upload">
-        <!-- Botão customizado para input file -->
-        <label for="csvFile" class="btn-file">Escolher arquivos</label>
+    <div class="layout">
 
-        <!-- Nome dos arquivos selecionados -->
-        <div class="arquivos-container">
-          <span id="nomeArquivos" class="arquivos-info"></span>
+      <div class="container fade-in delay-3">
+        <section class="upload">
+          <!-- Botão customizado para input file -->
+          <label for="csvFile" class="btn-file">Escolher arquivos</label>
+
+          <!-- Nome dos arquivos selecionados -->
+          <div class="arquivos-container">
+            <span id="nomeArquivos" class="arquivos-info"></span>
+          </div>
+
+          <!-- Input real (oculto) -->
+          <input type="file" id="csvFile" name="csvFile" accept=".csv,text/csv" multiple class="visually-hidden"
+            aria-describedby="descricaoUpload">
+          <p id="descricaoUpload" class="visually-hidden">
+            Selecione um ou mais arquivos CSV para processamento.
+          </p>
+
+
+          <button id="btnProcessar" onclick="enviar()">
+            <span id="textoBtn">Processar CSV(s)</span>
+            <span id="loader" class="loader"></span>
+          </button>
+
+
+          <div id="progresso" class="progresso">
+            0 / 0
+          </div>
+
+        </section>
+
+        <!-- ================= FILTROS ================= -->
+
+
+        <!-- Filtro por tipo de comunicação -->
+        <section class="filtros">
+          <label for="filtroComunicacao">Filtrar por tipo de comunicação</label>
+          <select id="filtroComunicacao" name="filtroComunicacao">
+            <option value="">Todos os Tipos de Comunicação</option>
+            <option value="Satélite">Satélite</option>
+            <option value="GPRS">GPRS</option>
+            <option value="Em memória">Em memória</option>
+          </select>
+
+          <!-- Filtro por placa (dinâmico) -->
+          <label for="filtroPlaca">Filtrar por placa</label>
+          <select id="filtroPlaca" name="filtroPlaca" onchange="trocarPlaca()">
+            <option value="">Selecione a placa</option>
+          </select>
+
+          <!-- ================= CSV / PERÍODO ================= -->
+          <label for="filtroPeriodo">Filtrar por período</label>
+          <select id="filtroPeriodo" name="filtroPeriodo" onchange="trocarPeriodo()">
+            <option value="">Selecione o período</option>
+          </select>
+        </section>
+      </div>
+
+      <!-- ================= CARDS ================= -->
+
+      <section class="cards fade-in delay-4" aria-labelledby="tituloCards">
+        <h2 id="tituloCards" class="visually-hidden">Resumo dos dados</h2>
+        <div class="card">
+          <span>Placa</span>
+          <h2 id="placa">—</h2>
         </div>
 
-        <!-- Input real (oculto) -->
-        <input type="file" id="csvFile" name="csvFile" accept=".csv" multiple class="visually-hidden"
-          aria-describedby="descricaoUpload">
-        <p id="descricaoUpload" class="visually-hidden">
-          Selecione um ou mais arquivos CSV para processamento.
-        </p>
+        <div class="card">
+          <span>Total Televentos</span>
+          <h2 id="total">—</h2>
+        </div>
 
-
-        <button id="btnProcessar" onclick="enviar()">
-          <span id="textoBtn">Processar CSV(s)</span>
-          <span id="loader" class="loader"></span>
-        </button>
-
-
-        <div id="progresso" class="progresso">
-          0 / 0
+        <div class="card">
+          <span>Intervalo de Transmissão</span>
+          <h2 id="intervalo">—</h>
+        </div>
+        <!-- ===================================================== -->
+        <!-- 🔥 CARD INTERVALO DE TRANSMISSÃO -->
+        <!-- ===================================================== -->
+        <div class="card destaque">
+          <span>Evento Principal</span>
+          <h2 id="principal">—</h2>
+        </div>
+        <!-- ===================================================== -->
+        <!-- 🔥 NOVO CARD - IDENTIFICAÇÃO / AUDITORIA DO PROCESSO -->
+        <!-- ===================================================== -->
+        <div class="card card-meta">
+          <span>Período / Arquivo</span>
+          <h2 id="periodo">—</h3>
+            <small id="arquivo">—</small>
         </div>
 
       </section>
 
-      <!-- ================= FILTROS ================= -->
-
-
-      <!-- Filtro por tipo de comunicação -->
-      <section class="filtros">
-        <label for="filtroComunicacao">Filtrar por tipo de comunicação</label>
-        <select id="filtroComunicacao" name="filtroComunicacao">
-          <option value="">Todos os Tipos de Comunicação</option>
-          <option value="Satélite">Satélite</option>
-          <option value="GPRS">GPRS</option>
-          <option value="Em memória">Em memória</option>
-        </select>
-
-        <!-- Filtro por placa (dinâmico) -->
-        <label for="filtroPlaca">Filtrar por placa</label>
-        <select id="filtroPlaca" name="filtroPlaca" onchange="trocarPlaca()">
-          <option value="">Selecione a placa</option>
-        </select>
-
-        <!-- ================= CSV / PERÍODO ================= -->
-        <label for="filtroPeriodo">Filtrar por período</label>
-        <select id="filtroPeriodo" name="filtroPeriodo" onchange="trocarPeriodo()">
-          <option value="">Selecione o período</option>
-        </select>
-      </section>
     </div>
-
-    <!-- ================= CARDS ================= -->
-
-    <section class="cards fade-in delay-3" aria-labelledby="tituloCards">
-      <h2 id="tituloCards" class="visually-hidden">Resumo dos dados</h2>
-      <div class="card">
-        <span>Placa</span>
-        <h2 id="placa">—</h2>
-      </div>
-
-      <div class="card">
-        <span>Total Televentos</span>
-        <h2 id="total">—</h2>
-      </div>
-
-      <div class="card">
-        <span>Intervalo de Transmissão</span>
-        <h3 id="intervalo">—</h3>
-      </div>
-      <!-- ===================================================== -->
-      <!-- 🔥 CARD INTERVALO DE TRANSMISSÃO -->
-      <!-- ===================================================== -->
-      <div class="card destaque">
-        <span>Evento Principal</span>
-        <h2 id="principal">—</h2>
-      </div>
-      <!-- ===================================================== -->
-      <!-- 🔥 NOVO CARD - IDENTIFICAÇÃO / AUDITORIA DO PROCESSO -->
-      <!-- ===================================================== -->
-      <div class="card card-meta">
-        <span>Período / Arquivo</span>
-        <h2 id="periodo">—</h3>
-          <small id="arquivo">—</small>
-      </div>
-
-    </section>
-
 
     <!-- ================= CONTEÚDO ================= -->
 
-    <section class="conteudo fade-in delay-4">
+    <section class="conteudo fade-in delay-5">
 
-      <!-- Gráfico -->
       <div id="graficoWrapper" class="grafico-wrapper">
-        <!-- 📊 GRÁFICO DE BARRA (já existente) -->
-        <canvas id="grafico" aria-label="Gráfico de distribuição de eventos em barras" role="img">Seu navegador não
-          suporta
-          gráficos em canvas</canvas>
+        <!-- Gráfico -->
+        <div id="graficoBarrasWrapper" class="grafico-container">
+          <!-- 📊 GRÁFICO DE BARRA (já existente) -->
+          <canvas id="graficoBarras" aria-label="Gráfico de distribuição de eventos em barras" role="img">Seu navegador
+            não
+            suporta
+            gráficos em canvas</canvas>
+        </div>
 
         <!-- 🥧 NOVO GRÁFICO DE PIZZA -->
-        <div class="grafico-box">
+        <div id="graficoPizzaWrapper" class="grafico-container">
           <canvas id="graficoPizza" aria-label="Gráfico de distribuição de eventos em formato pizza" role="img">Seu
             navegador não suporta
             gráficos em canvas</canvas>
         </div>
-
-        <p class="visually-hidden">
-          O gráfico apresenta a distribuição percentual dos eventos processados.
-        </p>
       </div>
+      <div id="graficoLinhaWrapperPai" class="grafico-wrapper">
+        <div id="graficoLinhaWrapper" class="grafico-container">
+          <canvas id="graficoLinha" aria-label="Gráfico de distirbuição em formaato linha" role="img">Seu
+            navegador não suporta
+            gráficos em canvas</canvas>
+        </div>
+      </div>
+
+      <p class="visually-hidden">
+        O gráfico apresenta a distribuição percentual dos eventos processados.
+      </p>
+
 
       <!-- Tabela -->
       <table aria-describedby="descricaoTabela">
@@ -277,7 +302,7 @@
 
 
   <!-- ================= AÇÕES ================= -->
-  <footer class="container-footer fade-in delay-5">
+  <footer class="container-footer fade-in delay-6">
     <div class="acoes full-width">
 
       <!-- ESQUERDA -->
@@ -286,8 +311,7 @@
         <button onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel</button>
       </div>
 
-      <!-- DIVISOR CENTRAL -->
-      <div class="divisor"></div>
+
 
       <!-- DIREITA -->
       <div class="grupo grupo-status">
@@ -308,6 +332,8 @@
   <script src="assets/libs/chart.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style/dist/xlsx.bundle.js"></script>
   <script src="assets/libs/jspdf.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1" defer></script>
   <!-- Script principal -->
   <script src="js/api.js" defer></script>
   <script src="js/script.js" defer></script>

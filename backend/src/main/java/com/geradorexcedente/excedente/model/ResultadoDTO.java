@@ -41,6 +41,9 @@ public class ResultadoDTO {
 
     private String intervaloTransmissao;
 
+    // =====================================
+    private List<EventoTimelineDTO> eventosTimeline;
+
     /**
      * ==========================================================
      * CONSTRUTOR VAZIO
@@ -62,6 +65,7 @@ public class ResultadoDTO {
             int total,
             String intervaloTransmissao,
             List<EventoDTO> eventos,
+            List<EventoTimelineDTO> eventosTimeline, // 👈 NOVO
             String dataInicio,
             String dataFim,
             String nomeArquivo) {
@@ -70,6 +74,7 @@ public class ResultadoDTO {
         this.total = total;
         this.intervaloTransmissao = intervaloTransmissao;
         this.eventos = eventos;
+        this.eventosTimeline = eventosTimeline; // 👈 IMPORTANTE
         this.dataInicio = dataInicio;
         this.dataFim = dataFim;
         this.nomeArquivo = nomeArquivo;
@@ -93,6 +98,10 @@ public class ResultadoDTO {
 
     public List<EventoDTO> getEventos() {
         return eventos;
+    }
+
+    public List<EventoTimelineDTO> getEventosTimeline() {
+        return eventosTimeline;
     }
 
     public String getDataInicio() {

@@ -21,5 +21,6 @@ com\geradorexcedente\excedente\controller\ExcedenteController.class
 com\geradorexcedente\usuario\dao\UsuarioDAO.class
 com\geradorexcedente\auth\dto\LoginRequestDTO.class
 com\geradorexcedente\security\CorsConfig.class
+com\geradorexcedente\excedente\model\EventoTimelineDTO.class
 com\geradorexcedente\security\SecurityConfig.class
 com\geradorexcedente\usuario\model\Usuario.class

@@ -8,6 +8,7 @@ let arquivosPorResultado = {};
 let placaAtual = null;
 let resultadoAtualIndex = 0;
 
+// Gráfico barra e pizza / tabela
 let eventoSelecionado = null;
 
 let cacheDadosBrutos = {};
@@ -19,6 +20,8 @@ let resultadoGraf = null;
 let chartGraf = null;
 let chartPizza = null; // 🔥 NOVO
 
+let chartLinha = null;
+
 // ===============================
 // 🧠 CACHE INTELIGENTE (NOVO)
 // ===============================
@@ -28,6 +31,9 @@ let cacheResultadosProcessados = {};
 
 // 🔥 cache de filtros (evita recalcular)
 const cacheFiltros = new Map();
+
+const { jsPDF } = window.jspdf;
+
 
 //====================================================================
 
@@ -308,6 +314,7 @@ function agruparEventos(lista) {
 
   let total = 0;
   const contagem = {};
+  const timeline = []; // 🔥 NOVO
 
   let placa = placaAtual;
   let dataInicio = null;
@@ -322,6 +329,12 @@ function agruparEventos(lista) {
 
     if (!dataInicio || d.dataInicio < dataInicio) dataInicio = d.dataInicio;
     if (!dataFim || d.dataFim > dataFim) dataFim = d.dataFim;
+
+    // 🔥 JUNTA TIMELINE
+    if (Array.isArray(d.eventosTimeline)) {
+      timeline.push(...d.eventosTimeline);
+    }
+
 
     d.eventos.forEach(e => {
 
@@ -351,6 +364,7 @@ function agruparEventos(lista) {
     placa,
     total,
     eventos,
+    eventosTimeline: timeline, // 🔥 AQUI ESTÁ A CORREÇÃO
     dataInicio,
     dataFim,
     nomeArquivo,
@@ -679,6 +693,11 @@ function renderizar(d) {
 
   const eventosOrdenados = [...d.eventos].sort((a, b) => b.qtd - a.qtd);
 
+  if (!eventosOrdenados || !eventosOrdenados.length) {
+    console.warn("Sem dados ainda...");
+    return;
+  }
+
   document.getElementById("principal").innerText =
     eventosOrdenados[0]?.nome ?? "-";
 
@@ -701,6 +720,7 @@ function renderizar(d) {
     // 🎯 CONTROLE DE LINHA ATIVA
     // ===============================
     const ativo = e.nome === eventoSelecionado;
+
 
     // ===============================
     // 🏆 RANKING TOP 3 EVENTOS
@@ -761,36 +781,58 @@ function renderizar(d) {
   // 📈 GRÁFICO (ULTRA EVOLUÍDO)
   // ===============================
   const wrapper = document.getElementById("graficoWrapper");
+  const wrapperBarra = document.getElementById("graficoBarrasWrapper");
+  const wrapperPizza = document.getElementById("graficoPizzaWrapper");
+  const wrapperLinhaPai = document.getElementById("graficoLinhaWrapperPai");
 
   // ===============================
   // 🎯 FILTRA EVENTOS PARA GRÁFICO
   // ===============================
-  const eventosGraf = eventoSelecionado
-    ? eventosOrdenados.filter(e => e.nome === eventoSelecionado)
-    : eventosOrdenados.slice(0, 15);
+  const eventosGrafBarra = eventosOrdenados.slice(0, 12);
 
   // ===============================
   // 🚨 SEM DADOS → ESCONDE COM ANIMAÇÃO
   // ===============================
-  if (!eventosGraf.length) {
-    wrapper.classList.remove("ativo");
-
-    setTimeout(() => {
-      wrapper.classList.add("ativo");
-    }, 50);
-
+  if (!eventosGrafBarra.length) {
+    wrapper.style.display = "none";
     return;
   }
 
   // ===============================
   // 🎬 ATIVA ANIMAÇÃO DO CONTAINER
   // ===============================
-  wrapper.classList.add("ativo");
+  // 🔥 só aparece quando tem dados
+  if (!eventosGrafBarra.length) {
+    wrapper.classList.remove("ativo");
+    return;
+  }
 
+  wrapper.classList.add("ativo");
   // ===============================
   // 📊 GRÁFICO DE BARRA (MORPH REAL)
   // ===============================
-  const ctx = document.getElementById("grafico");
+  const ctx = document.getElementById("graficoBarras");
+
+
+  // =======================================
+  // 🎨 GRADIENTE DINÂMICO (PRIMARY → SECONDARY)
+  // =======================================
+  // ⚠️ Canvas exige criação via JS (não CSS)
+  const ctx2d = ctx.getContext("2d");
+
+  // Gradiente vertical (topo → base)
+  const gradientBar = ctx2d.createLinearGradient(0, 0, 0, 300);
+  gradientBar.addColorStop(0, "#00e5ff");   // primary
+  gradientBar.addColorStop(1, "#7c3aed");   // secondary
+
+  // Gradiente horizontal (borda)
+  const gradientBorder = ctx2d.createLinearGradient(0, 0, 300, 0);
+  gradientBorder.addColorStop(0, "#00e5ff");
+  gradientBorder.addColorStop(1, "#7c3aed");
+
+  if (window.ChartDataLabels) {
+    Chart.register(ChartDataLabels);
+  }
 
   // =======================================
   // 🧠 CONTROLE DE HOVER (ANTI FLICKER)
@@ -822,13 +864,22 @@ function renderizar(d) {
     // ===============================
     // 🔄 ATUALIZA DADOS (TRANSIÇÃO SUAVE)
     // ===============================
-    chartGraf.data.labels = eventosGraf.map(e => e.nome);
-    chartGraf.data.datasets[0].data = eventosGraf.map(e => e.qtd);
+    chartGraf.data.labels = eventosGrafBarra.map(e => formatarLabel(e.nome));
+    chartGraf.data.datasets[0].data = eventosGrafBarra.map(e => e.qtd);
+
+    // 🔥 aplica gradiente também em updates
+    chartGraf.data.datasets[0].backgroundColor =
+      eventosGrafBarra.map(e =>
+        e.nome === eventoSelecionado
+          ? "#00e5ff"
+          : gradientBar
+      );;
+    chartGraf.data.datasets[0].borderColor = gradientBorder;
 
     chartGraf.options.plugins.title.text =
-      eventoSelecionado || "Top 15 Eventos";
+      eventoSelecionado || "Top 12 Eventos";
 
-    chartGraf.update(); // 🔥 anima automaticamente
+    chartGraf.update(); // 🔥 evita recalculo bugado
 
   } else {
 
@@ -838,23 +889,29 @@ function renderizar(d) {
     chartGraf = new Chart(ctx, {
       type: "bar",
       data: {
-        labels: eventosGraf.map(e => e.nome),
+        labels: eventosGrafBarra.map(e => formatarLabel(e.nome)),
         datasets: [{
-          data: eventosGraf.map(e => e.qtd),
+          data: eventosGrafBarra.map(e => e.qtd),
 
           // 🔥 cor inicial (será animada pelo glow)
-          backgroundColor: "rgba(0,229,255,0.3)",
-          borderColor: "#00e5ff",
+          backgroundColor: eventosGrafBarra.map((e, i) => {
+            if (e.nome === eventoSelecionado) return "#00e5ff";
+
+            return gradientBar; // mantém o gradiente original
+          }),
+          borderColor: gradientBorder,
           borderWidth: 1,
           borderRadius: 6,
           hoverBorderWidth: 2,
-          hoverBorderColor: "#00e5ff"
+          hoverBorderColor: "#00e5ff",
+          hitRadius: 12,   // 🔥 aumenta área de interação
+          hoverRadius: 8   // 🔥 suaviza hover
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
-
+        maintainAspectRatio: false, // 🔥 necessário para altura fixa
+        events: ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'],
         // ===============================
         // 🎬 ANIMAÇÃO DE ENTRADA
         // ===============================
@@ -864,19 +921,56 @@ function renderizar(d) {
           delay: (ctx) => ctx.dataIndex * 60
         },
 
+        onClick: (event, elements) => {
+          if (!elements.length) return;
+
+          const index = elements[0].index;
+          const nomeEvento = eventosGrafBarra[index]?.nome;
+
+          if (!nomeEvento) return;
+
+          // 🔥 TOGGLE GLOBAL ÚNICO
+          eventoSelecionado =
+            eventoSelecionado === nomeEvento ? null : nomeEvento;
+
+          aplicarFiltrosFrontend();
+        },
+
         scales: {
           x: {
             ticks: {
               color: "#aaa",
-              maxRotation: 45,
-              minRotation: 30
+              maxRotation: 0,
+              minRotation: 0,
+              // maxRotation: 45,
+              // minRotation: 30
+              align: 'center',
+              autoSkip: false, // 🔥 MOSTRA TODOS
+              maxTicksLimit: 12,
+              padding: 10, // 🔥 dá respiro
+              font: {
+                size: 10 // 🔥 diminui um pouco
+              }
             },
             grid: { display: false }
           },
           y: {
-            ticks: { color: "#aaa" },
+            beginAtZero: true,
+            grace: '10%', // 🔥 cria espaço acima das barras
+            ticks: {
+              color: "#aaa",
+              padding: 8,
+              callback: (value) => {
+                return value.toLocaleString("pt-BR");
+              }
+            },
             grid: { color: "rgba(255,255,255,0.05)" }
           }
+        },
+
+        interaction: {
+          mode: 'nearest',
+          intersect: false
         },
 
         plugins: {
@@ -884,29 +978,90 @@ function renderizar(d) {
 
           title: {
             display: true,
-            text: eventoSelecionado || "Top 15 Eventos",
+            text:
+              eventoSelecionado || "Top 12 Eventos",
             color: "#00e5ff",
             font: { size: 14 }
+          },
+          // 🔥 AQUI ESTÁ O SEGREDO
+          datalabels: {
+            anchor: 'end',      // posiciona no topo
+            align: 'top',       // acima da barra
+            color: '#00e5ff',
+            textShadowBlur: 6,
+            textShadowColor: '#00e5ff',
+            font: {
+              weight: 'bold',
+              size: 12
+            },
+            formatter: (value) => {
+              return value.toLocaleString("pt-BR");
+            }
           },
 
           tooltip: {
             backgroundColor: "#111",
-            borderColor: "#00e5ff",
+            borderColor: "#7c3aed", // 🔥 leve ajuste para combinar com gradient
             borderWidth: 1,
-            titleColor: "#00e5ff",
+            titleColor: "#7c3aed",
             bodyColor: "#fff"
-          }
+          },
         }
       }
     });
   }
 
+  function formatarLabel(nome) {
+    const palavras = nome.split(" ");
+
+    // 🔥 até 2 palavras → 1 linha
+    if (palavras.length <= 2) return nome;
+
+    // 🔥 3 a 4 palavras → 2 linhas
+    if (palavras.length <= 4) {
+      const meio = Math.ceil(palavras.length / 2);
+
+      return [
+        palavras.slice(0, meio).join(" "),
+        palavras.slice(meio).join(" ")
+      ];
+    }
+
+    // 🔥 5+ palavras → 3 linhas
+    const parte = Math.ceil(palavras.length / 3);
+
+    return [
+      palavras.slice(0, parte).join(" "),
+      palavras.slice(parte, parte * 2).join(" "),
+      palavras.slice(parte * 2).join(" ")
+    ];
+  }
+
   // ===============================
-  // 🥧 GRÁFICO DE PIZZA (COM MORPH)
+  // 🥧 GRÁFICO DE PIZZA (COM GRADIENTE)
   // ===============================
   const ctxPizza = document.getElementById("graficoPizza");
+  const eventosPizza = eventosOrdenados.slice(0, 12);
 
-  const eventosPizza = eventosGraf.slice(0, 12);
+  // ===============================
+  // 🎨 GERADOR DE CORES (ROXO → AZUL)
+  // ===============================
+  function gerarGradienteArray(total) {
+    const cores = [];
+
+    for (let i = 0; i < total; i++) {
+      const ratio = i / total;
+
+      // 🔥 AGORA: secondary (#7c3aed) → primary (#00e5ff)
+      const r = Math.round(124 + (0 - 124) * ratio);
+      const g = Math.round(58 + (229 - 58) * ratio);
+      const b = Math.round(237 + (255 - 237) * ratio);
+
+      cores.push(`rgb(${r}, ${g}, ${b})`);
+    }
+
+    return cores;
+  }
 
   // ===============================
   // 🔁 MORPH PIZZA
@@ -916,10 +1071,22 @@ function renderizar(d) {
     chartPizza.data.labels = eventosPizza.map(e => e.nome);
     chartPizza.data.datasets[0].data = eventosPizza.map(e => e.qtd);
 
+    // 🎨 aplica gradiente no update
+    const cores = gerarGradienteArray(eventosPizza.length);
+
+    chartPizza.data.datasets[0].backgroundColor =
+      eventosPizza.map((e, i) =>
+        e.nome === eventoSelecionado
+          ? "#00e5ff"
+          : cores[i]
+      );
+
     chartPizza.update();
 
   } else {
 
+    // 🎨 aplica gradiente no update
+    const cores = gerarGradienteArray(eventosPizza.length);
     chartPizza = new Chart(ctxPizza, {
       type: "doughnut",
       data: {
@@ -927,18 +1094,18 @@ function renderizar(d) {
         datasets: [{
           data: eventosPizza.map(e => e.qtd),
 
-          backgroundColor: eventosPizza.map((_, i) =>
-            `rgba(0,229,255,${0.3 + i * 0.08})`
+          backgroundColor: eventosPizza.map((e, i) =>
+            e.nome === eventoSelecionado ? "#00e5ff" : cores[i]
           ),
 
-          borderColor: "#00e5ff",
+          borderColor: "#0a0a0a",
           borderWidth: 1,
           hoverOffset: 12
         }]
       },
       options: {
         responsive: true,
-        maintainAspectRatio: true,
+        maintainAspectRatio: false,
         cutout: "70%",
 
         animation: {
@@ -946,6 +1113,20 @@ function renderizar(d) {
           animateScale: true,
           duration: 1200,
           easing: "easeOutExpo"
+        },
+
+        onClick: (event, elements) => {
+          if (!elements.length) return;
+
+          const index = elements[0].index;
+          const nomeEvento = eventosPizza[index]?.nome;
+
+          if (!nomeEvento) return;
+
+          eventoSelecionado =
+            eventoSelecionado === nomeEvento ? null : nomeEvento;
+
+          aplicarFiltrosFrontend();
         },
 
         plugins: {
@@ -965,29 +1146,306 @@ function renderizar(d) {
             font: { size: 13 }
           },
 
+
+          // 🔥 AQUI ESTÁ O AJUSTE
+          datalabels: {
+            color: '#fff',
+            textStrokeColor: '#000',
+            textStrokeWidth: 3, // 🔥 contorno preto
+            textShadowBlur: 6,
+            textShadowColor: '#000',
+
+            font: {
+              weight: 'bold',
+              size: 11
+            },
+
+            formatter: (value, context) => {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const porcentagem = (value / total) * 100;
+
+              // 🔥 esconde valores muito pequenos
+              if (porcentagem < 2) return '';
+
+              return `${porcentagem.toFixed(1)}%`;
+            }
+          },
+
           tooltip: {
             backgroundColor: "#111",
-            borderColor: "#00e5ff",
-            borderWidth: 1
+            borderColor: "#7c3aed", // 🔥 leve ajuste para combinar com gradient
+            borderWidth: 1,
+            titleColor: "#7c3aed",
+            bodyColor: "#fff"
           }
         }
       }
     });
   }
+  console.log("Eventos para linha:", d.eventos.slice(0, 5));
+
+  // ===============================
+  // 📈 GRÁFICO LINHA (INTEGRADO)
+  // ===============================
+  const ctxLinha = document.getElementById("graficoLinha");
+
+  console.log("d:", d);
+  console.log("timeline:", d.eventosTimeline);
+
+  if (d.eventosTimeline && d.eventosTimeline.length) {
+    wrapperLinhaPai.classList.add("ativo");
+  } else {
+    wrapperLinhaPai.classList.remove("ativo");
+  }
+
+  if (ctxLinha) {
+
+    const timeline = Array.isArray(d.eventosTimeline)
+      ? d.eventosTimeline
+      : [];
+
+    const timelineFiltrada = eventoSelecionado
+      ? timeline.filter(e => e.nome === eventoSelecionado)
+      : timeline;
+
+    // 🔥 se não tiver evento selecionado → mostra só TOP eventos
+    const usarMultiplasLinhas = !eventoSelecionado;
+
+    const multi = agruparMultiplasLinhas(timelineFiltrada);
+
+    if (!multi.labels.length) {
+      console.warn("Sem dados para gráfico de linha");
+      return;
+    }
+
+    const mudouEstrutura =
+      !chartLinha ||
+      chartLinha.data.labels.length !== multi.labels.length;
+
+    if (chartLinha && !mudouEstrutura) {
+
+      // ✅ UPDATE COM ANIMAÇÃO (SUAVE)
+      chartLinha.data.labels = multi.labels;
+      chartLinha.data.datasets = multi.datasets;
+
+      chartLinha.update('active');
+
+    } else {
+
+      // 🔥 RECRIA (quando necessário)
+      if (chartLinha) {
+        chartLinha.destroy();
+      }
+
+
+      // 🔥 recria SEMPRE
+      chartLinha = new Chart(ctxLinha, {
+        type: "line",
+        data: {
+          labels: multi.labels,
+          datasets: multi.datasets // 🔥 CORRETO
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+
+          // 🔥 FORÇA ANIMAÇÃO AO CRIAR
+          animation: {
+            duration: 800,
+            easing: 'easeInOutQuart'
+          },
+
+          transitions: {
+            active: {
+              animation: {
+                duration: 500
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: "bottom",
+              labels: {
+                color: "#aaa",
+                boxWidth: 12,
+                padding: 15,
+                font: {
+                  size: 10
+                }
+              }
+            }, // 🔥 importante pra múltiplas linhas
+
+            title: {
+              display: true,
+              text: "Eventos ao longo do tempo",
+              color: "#00e5ff"
+            },
+
+            tooltip: {
+              callbacks: {
+                title: (items) => {
+                  const raw = items[0].label;
+
+                },
+                label: (context) =>
+                  `${context.dataset.label}: ${context.raw}`
+              }
+            },
+
+            zoom: {
+              pan: {
+                enabled: true,
+                mode: 'x'
+              },
+              zoom: {
+                wheel: { enabled: true },
+                pinch: { enabled: true },
+                mode: 'x'
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: "#aaa",
+                maxRotation: 0,
+                autoSkip: true, // 🔥 ESSENCIAL
+                maxTicksLimit: 10 // 🔥 controla densidade
+              },
+              grid: {
+                display: false
+              }
+            },
+            y: {
+              ticks: {
+                color: "#aaa"
+              },
+              grid: {
+                color: "rgba(255,255,255,0.05)"
+              }
+            }
+          }
+        }
+      });
+    }
+  }
 }
 
 function filtrarEventoGraf(nomeEvento) {
 
-  // 🔁 alterna seleção (toggle)
-  if (eventoSelecionado === nomeEvento) {
-    eventoSelecionado = null;
-  } else {
-    eventoSelecionado = nomeEvento;
-  }
+  eventoSelecionado =
+    eventoSelecionado === nomeEvento ? null : nomeEvento;
 
-  // 🔄 re-renderiza tudo
   aplicarFiltrosFrontend();
 }
+
+
+function agruparPorData(eventos) {
+  if (!eventos || !eventos.length) {
+    console.warn("Sem timeline");
+    return [];
+  }
+
+  const mapa = {};
+
+  eventos.forEach(e => {
+
+    if (!e || !e.data) return;
+
+    const partes = e.data.split(" ");
+    if (!partes.length) return;
+
+    const data = partes[0];
+
+    if (!mapa[data]) {
+      mapa[data] = 0;
+    }
+
+    mapa[data]++;
+  });
+
+  const resultado = Object.entries(mapa).map(([data, qtd]) => ({
+    data,
+    qtd
+  }));
+
+  console.log("dadosTempo:", resultado);
+
+  return resultado.sort((a, b) => new Date(a.data) - new Date(b.data));
+}
+
+
+
+function agruparMultiplasLinhas(eventos) {
+  const mapa = {};
+
+  eventos.forEach(e => {
+    if (!e?.data || !e?.nome) return;
+
+    const hora = e.data.substring(0, 13) + ":00:00"; // ✅ ISO válido
+
+    if (!mapa[hora]) mapa[hora] = {};
+
+    if (!mapa[hora][e.nome]) mapa[hora][e.nome] = 0;
+
+    mapa[hora][e.nome]++;
+  });
+
+  const labels = Object.keys(mapa).sort((a, b) => {
+    const da = new Date(a.replace(" ", "T"));
+    const db = new Date(b.replace(" ", "T"));
+    return da - db;
+  });
+
+  const eventosUnicos = new Set();
+  Object.values(mapa).forEach(obj => {
+    Object.keys(obj).forEach(nome => eventosUnicos.add(nome));
+  });
+
+  const TOP = 8; // 🔥 ajuste aqui (3, 5 ou 7)
+
+  const eventosOrdenados = Array.from(eventosUnicos)
+    .map(nome => {
+      const total = labels.reduce((acc, hora) => acc + (mapa[hora][nome] || 0), 0);
+      return { nome, total };
+    })
+    .sort((a, b) => b.total - a.total)
+    .slice(0, TOP)
+    .map(e => e.nome);
+
+  const cores = [
+    "#00e5ff",
+    "#7c3aed",
+    "#22c55e",
+    "#f59e0b",
+    "#ef4444",
+    "#3b82f6"
+  ];
+
+  const datasets = eventosOrdenados.map((nome, i) => ({
+    label: nome,
+    data: labels.map(hora => mapa[hora][nome] ?? null),
+    borderColor: cores[i % cores.length],
+    backgroundColor: cores[i % cores.length] + "33",
+    borderWidth: 2,
+    tension: 0.4,
+    fill: false,
+    pointRadius: 0,
+    pointHoverRadius: 5,
+    pointHitRadius: 10,
+    spanGaps: true // 🔥 evita linhas quebradas estranhas
+  }));
+
+  return { labels, datasets };
+}
+
+
+
+
+
+
+
 
 
 // =================================
@@ -1108,7 +1566,7 @@ const ESTILO = {
 };
 
 // =====================================================
-// 🎨 APLICA TEMA DARK EM TODA A ABA
+// 🎨 APLICA TEMA DARK EM TODA A ABA (SEM QUEBRAR ESTILOS)
 // =====================================================
 function aplicarTemaDark(ws) {
 
@@ -1123,11 +1581,56 @@ function aplicarTemaDark(ws) {
 
       if (!ws[cellRef]) continue;
 
+      // 🔥 CORREÇÃO: mantém estilos anteriores
       ws[cellRef].s = {
+        ...ws[cellRef].s,
         ...ESTILO.texto,
         ...ESTILO.fundo
       };
     }
+  }
+}
+
+// =====================================================
+// 🦓 ZEBRA STRIPING (MELHORA LEITURA)
+// =====================================================
+function aplicarZebra(ws) {
+
+  if (!ws["!ref"]) return;
+
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+
+  for (let R = range.s.r + 1; R <= range.e.r; R++) {
+
+    if (R % 2 === 0) {
+      for (let C = range.s.c; C <= range.e.c; C++) {
+
+        const ref = XLSX.utils.encode_cell({ r: R, c: C });
+
+        if (!ws[ref]) continue;
+
+        ws[ref].s = {
+          ...ws[ref].s,
+          fill: { fgColor: { rgb: "26263A" } }
+        };
+      }
+    }
+  }
+}
+
+function destacarTop3(ws, colIndex, startRow) {
+
+  const cores = ["FFD700", "C0C0C0", "CD7F32"]; // ouro, prata, bronze
+
+  for (let i = 0; i < 3; i++) {
+    const ref = XLSX.utils.encode_cell({ r: startRow + i, c: colIndex });
+
+    if (!ws[ref]) continue;
+
+    ws[ref].s = {
+      ...ws[ref].s,
+      font: { bold: true, color: { rgb: cores[i] } }
+    };
   }
 }
 
@@ -1191,9 +1694,10 @@ function aplicarRankingCores(ws, colIndex, startRow, endRow) {
     };
   }
 }
-// ===================
-// BARRA DE PROGRESSO
-// ===================
+
+// =====================================================
+// 📊 BARRA DE PROGRESSO VISUAL (SEM QUEBRAR DADOS)
+// =====================================================
 function aplicarBarraProgresso(ws, colIndex, startRow, endRow) {
 
   for (let R = startRow; R <= endRow; R++) {
@@ -1205,9 +1709,7 @@ function aplicarBarraProgresso(ws, colIndex, startRow, endRow) {
 
     const valor = cell.v;
 
-    // 🔥 MAIS SUAVE (antes 10)
     const totalBlocos = 8;
-
     const preenchido = Math.round(valor * totalBlocos);
 
     const barra =
@@ -1219,7 +1721,7 @@ function aplicarBarraProgresso(ws, colIndex, startRow, endRow) {
     else if (valor > 0.4) color = "FFAB00";
     else color = "FF5252";
 
-    // 🔥 TEXTO MAIS CURTO
+    // 🔥 CORRETO: apenas altera o valor da célula atual
     cell.v = `${barra} ${(valor * 100).toFixed(1)}%`;
 
     cell.s = {
@@ -1259,19 +1761,56 @@ function gerarAbaResumo(wb) {
   // =========================
   // 🎯 TÍTULO
   // =========================
-  XLSX.utils.sheet_add_aoa(ws, [["DASHBOARD DE EXCEDENTE"]], { origin: "A1" });
+  XLSX.utils.sheet_add_aoa(ws, [
+    ["🚀 GERADOR DE EXCEDENTE"],
+    ["Relatório Inteligente • Sistema Analítico"]
+  ], { origin: "A1" });
 
   ws["A1"].s = {
-    font: { sz: 18, bold: true, color: { rgb: "FFFFFF" } },
-    fill: { fgColor: { rgb: "1E1E2F" } },
+    font: { sz: 20, bold: true, color: { rgb: "00E5FF" } },
     alignment: { horizontal: "center" }
   };
 
-  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 5 } }];
+  ws["A2"].s = {
+    font: { sz: 12, color: { rgb: "9AA0A6" } },
+    alignment: { horizontal: "center" }
+  };
+
+  ws["!merges"] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 5 } },
+    { s: { r: 1, c: 0 }, e: { r: 1, c: 5 } }
+  ];
 
   // =========================
   // 📊 KPI
   // =========================
+  const statusGeral = Object.values(statusPlacas).includes("NAO APTO")
+    ? "NAO APTO"
+    : "APTO";
+
+  XLSX.utils.sheet_add_aoa(ws, [
+    ["STATUS GERAL", statusGeral]
+  ], { origin: "A4" });
+
+  const statusCell = ws["B4"];
+
+  statusCell.s = {
+    font: {
+      bold: true,
+      color: {
+        rgb: statusGeral === "APTO" ? "00FF88" : "FF3B3B"
+      }
+    },
+    fill: {
+      fgColor: {
+        rgb: statusGeral === "APTO" ? "002B1F" : "2B0000"
+      }
+    },
+    alignment: { horizontal: "center" }
+  };
+
+
+
   const totalPlacas = Object.keys(resultadosPorPlaca).length;
 
   let totalEventos = 0;
@@ -1338,12 +1877,12 @@ function gerarAbaResumo(wb) {
   // =========================
   // 🎨 APLICAÇÕES VISUAIS
   // =========================
-  aplicarTemaDark(ws);
-  aplicarGrid(ws);
-
-  // 📈 ranking
-  aplicarRankingCores(ws, 1, 6, dadosResumo.length + 5); // TOTAL
-  aplicarBarraProgresso(ws, 5, 6, dadosResumo.length + 5); // %
+  // 🎨 ORDEM PROFISSIONAL DE ESTILIZAÇÃO
+  aplicarTemaDark(ws);     // base
+  aplicarZebra(ws);        // leitura
+  aplicarGrid(ws);         // alinhamento
+  aplicarRankingCores(ws, 1, 6, dadosResumo.length + 5);
+  aplicarBarraProgresso(ws, 5, 6, dadosResumo.length + 5);
 
   XLSX.utils.book_append_sheet(wb, ws, "Dashboard");
 }
@@ -1426,9 +1965,10 @@ function gerarAbaDados(wb) {
   // =========================
   // 🎨 APLICA TEMA (DEPOIS DO numFmt)
   // =========================
-  aplicarTemaDark(ws);
-  aplicarGrid(ws);
-
+  // 🎨 ORDEM PROFISSIONAL DE ESTILIZAÇÃO
+  aplicarTemaDark(ws);     // base
+  aplicarZebra(ws);        // leitura
+  aplicarGrid(ws);         // alinhamento
   // =========================
   // 📎 ADICIONA ABA
   // =========================
@@ -1481,12 +2021,17 @@ function gerarAbaTopEventos(wb) {
 
   ws["!autofilter"] = { ref: `A1:D${dados.length}` };
 
-  aplicarTemaDark(ws);
-  aplicarGrid(ws);
+  // 🎨 ORDEM PROFISSIONAL DE ESTILIZAÇÃO
+  aplicarTemaDark(ws);     // base
+  aplicarZebra(ws);        // leitura
+  aplicarGrid(ws);         // alinhamento
 
-  // 📈 ranking visual
-  aplicarRankingCores(ws, 2, 1, dados.length - 1); // QTD
-  aplicarBarraProgresso(ws, 3, 1, dados.length - 1); // %
+  // 📈 ranking visual correto
+  aplicarRankingCores(ws, 2, 1, dados.length - 1);
+  aplicarBarraProgresso(ws, 3, 1, dados.length - 1);
+
+  // ⭐ destaque top 3 (melhoria)
+  destacarTop3(ws, 2, 1);
 
   XLSX.utils.book_append_sheet(wb, ws, "Top_Eventos");
 }
@@ -1509,151 +2054,251 @@ function exportarPDF() {
 // =============================
 function exportarPDFGeral() {
 
-  const { jsPDF } = window.jspdf;
+  const margem = 10;
   const pdf = new jsPDF();
 
-  let y = 30;          // posição vertical global
-  let pagina = 1;      // controle de página
+  let pagina = 1;
 
-  adicionarCabecalho(pdf, "RELATORIO GERAL DE EXCEDENTE");
+  // 🔥 PRIMEIRA PÁGINA = RANKING
+  adicionarCabecalho(pdf, "RELATORIO GERAL DE EXCEDENTE", margem);
 
-  // ===============================
-  // 🔁 LOOP POR PLACA
-  // ===============================
-  Object.keys(resultadosPorPlaca).forEach(placa => {
+  desenharRankingGlobal(pdf, resultadosPorPlaca, statusPlacas);
 
-    const lista = resultadosPorPlaca[placa];
+  // 🔥 nova página para placas individuais
+  adicionarRodape(pdf, pagina++);
+  pdf.addPage();
 
-    lista.forEach(d => {
+  const placas = Object.keys(resultadosPorPlaca);
 
-      // ===============================
-      // 📊 ORDENAÇÃO + TOP 6 EVENTOS
-      // ===============================
-      const eventosOrdenados = [...d.eventos]
-        .sort((a, b) => b.qtd - a.qtd);
+  placas.forEach((placa, index) => {
 
-      const topEventos = eventosOrdenados.slice(0, 6);
+    const d = resultadosPorPlaca[placa][0]; // 🔥 pega dados da placa
+    const status = statusPlacas[placa];
 
-      const principal = eventosOrdenados[0]?.nome || "-";
-      const percentualPrincipal =
-        eventosOrdenados[0]?.percentual?.toFixed(2) || "0";
+    // ===============================
+    // 🆕 NOVA PÁGINA (exceto primeira)
+    // ===============================
+    if (index > 0) {
+      adicionarRodape(pdf, pagina++);
+      pdf.addPage();
+    }
 
-      const status = statusPlacas[placa];
+    adicionarCabecalho(pdf, "RELATORIO GERAL DE EXCEDENTE", margem);
 
-      // ===============================
-      // 📏 CONFIGURAÇÃO PARA 2 POR PÁGINA
-      // ===============================
-      const alturaCaixa = 110;  // 🔥 altura ideal para caber 2 blocos
-      const espacamento = 10;   // 🔥 espaço entre blocos
+    let y = 30;
 
-      // ===============================
-      // 🚨 QUEBRA DE PÁGINA INTELIGENTE (ANTES)
-      // ===============================
-      if (y + alturaCaixa + espacamento > 280) {
-        adicionarRodape(pdf, pagina++);
-        pdf.addPage();
-        adicionarCabecalho(pdf, "RELATORIO GERAL DE EXCEDENTE");
-        y = 30;
-      }
+    // ===============================
+    // 🔷 TÍTULO
+    // ===============================
+    pdf.setTextColor(255);
+    pdf.setFontSize(12);
+    pdf.text(`PLACA: ${placa}`, margem, y);
 
-      // ===============================
-      // 📍 POSIÇÃO INICIAL DO BLOCO
-      // ===============================
-      const inicioBloco = y;
+    y += 8;
 
-      // ===============================
-      // 📦 CONTAINER PRINCIPAL (DASHBOARD)
-      // ===============================
-      pdf.setFillColor(10, 15, 30);
-      pdf.roundedRect(8, inicioBloco - 8, 194, alturaCaixa, 3, 3, "F");
+    // ===============================
+    // 🎨 CARDS
+    // ===============================
+    desenharCardsResumo(pdf, d, status, y);
 
-      let yInterno = inicioBloco;
+    y += 45;
 
-      // ===============================
-      // 🔷 PLACA
-      // ===============================
-      pdf.setTextColor(0, 229, 255);
-      pdf.setFontSize(10);
-      pdf.text(`PLACA: ${placa}`, 10, yInterno);
+    // ===============================
+    // 📊 GRÁFICO DE BARRAS (TOP 12)
+    // ===============================
+    const eventosTop = [...d.eventos]
+      .sort((a, b) => b.qtd - a.qtd)
+      .slice(0, 12);
 
-      yInterno += 7;
+    const imgBarra = gerarGraficoPDF(eventosTop);
 
-      // ===============================
-      // 🎨 CARDS RESUMO (COMPACTO)
-      // ===============================
-      desenharCardsResumo(pdf, d, status, yInterno);
+    if (imgBarra) {
+      pdf.addImage(imgBarra, "PNG", margem, y, 180, 60);
+      y += 65;
+    }
 
-      yInterno += 25; // 🔥 reduzido
+    // ===============================
+    // 📈 GRÁFICO DE LINHA
+    // ===============================
+    const imgLinha = gerarGraficoLinhaPDF(d.eventosTimeline);
 
-      // ===============================
-      // 🎯 CARD EVENTO PRINCIPAL
-      // ===============================
-      pdf.setFillColor(20, 25, 40);
-      pdf.roundedRect(10, yInterno - 3, 90, 14, 2, 2, "F");
+    if (imgLinha) {
+      pdf.addImage(imgLinha, "PNG", margem, y, 180, 50);
+      y += 55;
+    }
 
-      pdf.setTextColor(180);
-      pdf.setFontSize(7);
-      pdf.text("EVENTO PRINCIPAL", 12, yInterno);
+    // ===============================
+    // 🥧 PIZZA + INSIGHTS
+    // ===============================
+    const eventosPizza = eventosTop.slice(0, 6);
+    const imgPizza = gerarGraficoPizzaPDF(eventosPizza);
+    const insights = gerarInsights(d);
 
-      pdf.setTextColor(255);
-      pdf.setFontSize(8);
+    // ===============================
+    // 🥧 BLOCO PIZZA + INSIGHTS (ALINHADO)
+    // ===============================
+    const alturaBloco = 90;
 
-      const nomeQuebrado = pdf.splitTextToSize(principal, 75);
-      pdf.text(nomeQuebrado, 12, yInterno + 4);
+    const xPizza = margem;
+    const xInfo = margem + 95; // 🔥 sempre relativo à pizza
 
-      pdf.setTextColor(0, 229, 255);
-      pdf.text(`${percentualPrincipal}%`, 75, yInterno + 10);
+    const yTopo = y;
 
-      // ===============================
-      // 📅 CARD PERÍODO / ARQUIVO
-      // ===============================
-      pdf.setFillColor(20, 25, 40);
-      pdf.roundedRect(105, yInterno - 3, 97, 14, 2, 2, "F");
+    // 🍩 PIZZA
+    if (imgPizza) {
+      pdf.addImage(imgPizza, "PNG", xPizza, yTopo, 90, alturaBloco);
+    }
 
-      pdf.setTextColor(180);
-      pdf.setFontSize(7);
-      pdf.text("PERIODO / ARQUIVO", 107, yInterno);
+    // 🔷 INSIGHTS (ALINHADO AO TOPO DA PIZZA)
+    let yInfo = yTopo + 30;
 
-      pdf.setTextColor(255);
-      pdf.setFontSize(7);
+    pdf.setTextColor(0, 120, 180);
+    pdf.setFontSize(11);
+    pdf.text("INSIGHTS", xInfo, yInfo);
 
-      const periodoTexto =
-        `${formatarData(d.dataInicio)} até ${formatarData(d.dataFim)}`;
+    yInfo += 8;
 
-      const periodoQuebrado = pdf.splitTextToSize(periodoTexto, 90);
-      pdf.text(periodoQuebrado, 107, yInterno + 4);
+    pdf.setTextColor(40);
+    pdf.setFontSize(9);
 
-      pdf.setTextColor(150);
-      pdf.text(d.nomeArquivo || "-", 107, yInterno + 9);
+    // 🔥 quebra automática de texto longo
+    const eventoPrincipal = pdf.splitTextToSize(
+      `Evento principal: ${insights.principal}`,
+      80
+    );
 
-      yInterno += 20; // 🔥 reduzido
+    pdf.text(eventoPrincipal, xInfo, yInfo);
+    yInfo += eventoPrincipal.length * 5;
 
-      // ===============================
-      // 📊 GRÁFICO (REDUZIDO)
-      // ===============================
-      const imgGrafico = gerarGraficoPDF(topEventos);
+    pdf.text(`% Top: ${insights.percentual}%`, xInfo, yInfo);
+    yInfo += 6;
 
-      if (imgGrafico) {
-        // 🔥 menor altura para caber no layout
-        pdf.addImage(imgGrafico, "PNG", 10, yInterno, 180, 40);
-      }
+    pdf.text(`Total eventos: ${insights.total}`, xInfo, yInfo);
 
-      // ===============================
-      // 🚀 AVANÇA PARA PRÓXIMO BLOCO
-      // ===============================
-      y = inicioBloco + alturaCaixa + espacamento;
-
-    });
-
+    // ===============================
+    // 🔥 AVANÇA O Y CORRETAMENTE
+    // ===============================
+    y += alturaBloco + 10;
   });
 
-  // ===============================
-  // 📄 RODAPÉ FINAL
-  // ===============================
   adicionarRodape(pdf, pagina);
 
   pdf.save("relatorio_geral.pdf");
 }
+
+
+
+
+
+
+function desenharRankingGlobal(pdf, resultadosPorPlaca, statusPlacas) {
+
+  const margem = 10;
+  let y = 30;
+
+  // ===============================
+  // 🏆 TÍTULO
+  // ===============================
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(14);
+  pdf.text("RANKING GLOBAL DE PLACAS", margem, y);
+
+  y += 10;
+
+  // ===============================
+  // 📊 MONTA DADOS
+  // ===============================
+  const ranking = Object.keys(resultadosPorPlaca).map(placa => {
+
+    const d = resultadosPorPlaca[placa][0];
+
+    const eventosOrdenados = [...d.eventos]
+      .sort((a, b) => b.qtd - a.qtd);
+
+    const principal = eventosOrdenados[0]?.nome || "-";
+
+    return {
+      placa,
+      total: d.total,
+      principal,
+      status: statusPlacas[placa]
+    };
+
+  });
+
+  // 🔥 ORDENA POR TOTAL (DESC)
+  ranking.sort((a, b) => b.total - a.total);
+
+  // 🔥 TOP 12 (ajuste aqui se quiser)
+  const topRanking = ranking.slice(0, 12);
+
+  // ===============================
+  // 🔷 CABEÇALHO
+  // ===============================
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(10);
+
+  pdf.text("PLACA", margem, y);
+  pdf.text("TOTAL", 70, y);
+  pdf.text("EVENTO PRINCIPAL", 110, y);
+  pdf.text("STATUS", 180, y);
+
+  y += 4;
+
+  pdf.setDrawColor(0, 229, 255);
+  pdf.line(margem, y, 200, y);
+
+  y += 6;
+
+  // ===============================
+  // 📋 LINHAS
+  // ===============================
+  topRanking.forEach((item, index) => {
+
+    // zebra
+    if (index % 2 === 0) {
+      pdf.setFillColor(20, 20, 30);
+      pdf.rect(margem, y - 4, 190, 6, "F");
+      pdf.setTextColor(255);
+    } else {
+      pdf.setTextColor(40);
+    }
+
+    pdf.setFontSize(9);
+
+    // 🔥 quebra nome do evento se necessário
+    const nomeEvento = item.principal.length > 22
+      ? item.principal.substring(0, 22) + "..."
+      : item.principal;
+
+    const statusTexto =
+      item.status === "APTO" ? "APTO" : "NAO APTO";
+
+    pdf.text(`${index + 1}. ${item.placa}`, margem, y);
+    pdf.text(String(item.total), 70, y);
+    pdf.text(nomeEvento, 110, y);
+
+    // 🔥 cor do status
+    if (item.status === "APTO") {
+      pdf.setTextColor(0, 200, 0);
+    } else {
+      pdf.setTextColor(255, 80, 80);
+    }
+
+    pdf.text(statusTexto, 180, y);
+
+    y += 6;
+
+  });
+
+}
+
+
+
+
+
+
+
 // ===============================
 // 📊 GERAR GRÁFICO PARA PDF (FIXO)
 // ===============================
@@ -1670,28 +2315,58 @@ function gerarGraficoPDF(eventos) {
   const chartTemp = new Chart(ctx, {
     type: "bar",
     data: {
-      labels: eventos.map(e => e.nome),
+      labels: eventos.map(e => formatarLabel(e.nome)),
       datasets: [{
         data: eventos.map(e => e.qtd),
         backgroundColor: "rgba(0,229,255,0.7)"
       }]
     },
     options: {
-      responsive: false, // 🔥 ESSENCIAL
+      responsive: false,
       animation: false,
+
       plugins: {
-        legend: { display: false }
+        legend: {
+          display: false,
+          labels: {
+            color: "#000", // 🔥 legenda escura
+            font: {
+              size: 11,
+              weight: "bold"
+            }
+          }
+        }
       },
+
       scales: {
         x: {
           ticks: {
-            color: "#ccc",
-            maxRotation: 30,
-            minRotation: 30
+            color: "#111", // 🔥 labels eixo X escuros
+            maxRotation: 0,
+            minRotation: 0,
+            autoSkip: false,
+            padding: 10, // 🔥 espaçamento entre label e eixo
+            font: {
+              size: 10,
+              weight: "600"
+            }
+          },
+          grid: {
+            color: "rgba(0,0,0,0.1)" // leve e elegante
           }
         },
+
         y: {
-          ticks: { color: "#ccc" }
+          ticks: {
+            color: "#000", // 🔥 números eixo Y escuros
+            font: {
+              size: 10,
+              weight: "bold"
+            }
+          },
+          grid: {
+            color: "rgba(0,0,0,0.1)"
+          }
         }
       }
     }
@@ -1710,14 +2385,15 @@ function gerarGraficoPDF(eventos) {
 // =========================
 function exportarPDFDetalhado() {
 
+  const margem = 10;
+
   if (!resultadoGraf) return;
 
-  const { jsPDF } = window.jspdf;
   const pdf = new jsPDF();
 
   let pagina = 1;
 
-  adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE");
+  adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
 
   const status = statusPlacas[resultadoGraf.placa];
 
@@ -1749,7 +2425,7 @@ function exportarPDFDetalhado() {
   // ===============================
   const eventosOrdenadosGraf = [...resultadoGraf.eventos]
     .sort((a, b) => b.qtd - a.qtd)
-    .slice(0, 15);
+    .slice(0, 12);
 
   const imgGrafico = gerarGraficoPDF(eventosOrdenadosGraf);
 
@@ -1762,26 +2438,180 @@ function exportarPDFDetalhado() {
 
     const alturaGrafico = larguraGrafico * proporcao;
 
+    // 🔥 VERIFICA ANTES DE DESENHAR
+    if (y + alturaGrafico > 270) {
+      adicionarRodape(pdf, pagina++);
+      pdf.addPage();
+      adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
+      y = 30;
+    }
+
+    // 🔥 AGORA DESENHA
     pdf.addImage(imgGrafico, "PNG", 10, y, larguraGrafico, alturaGrafico);
 
-    // 🔥 usa altura real (sem chute)
+    // 🔥 ATUALIZA Y
     y += alturaGrafico + 10;
+  }
+
+  const alturaLinha = 60;
+
+  if (y + 15 + alturaLinha > 270) {
+    adicionarRodape(pdf, pagina++);
+    pdf.addPage();
+    adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
+    y = 30;
+  }
+
+  // ===============================
+  // 📈 ANÁLISE TEMPORAL (LINHA)
+  // ===============================
+  pdf.setDrawColor(180);
+  pdf.line(margem, y, 200, y);
+  y += 5;
+
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(12);
+  pdf.text("ANÁLISE TEMPORAL", margem, y);
+
+  y += 8;
+
+  // 🔥 GRÁFICO DE LINHA
+  const imgLinha = gerarGraficoLinhaPDF(resultadoGraf.eventosTimeline);
+
+  if (imgLinha) {
+    const alturaLinha = 60;
+
+    pdf.addImage(imgLinha, "PNG", margem, y, 180, alturaLinha);
+
+    y += alturaLinha + 10; // 🔥 controle real
+  }
+
+  if (y > 160) {
+    adicionarRodape(pdf, pagina++);
+    pdf.addPage();
+    adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
+    y = 30;
+  }
+
+  // ===============================
+  // 🥧 DISTRIBUIÇÃO + INSIGHTS
+  // ===============================
+  pdf.setDrawColor(180);
+  pdf.line(margem, y, 200, y);
+  y += 5;
+
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(12);
+  pdf.text("DISTRIBUIÇÃO E INSIGHTS", margem, y);
+
+  y += 8;
+
+  // 🔥 GERA DADOS
+  const imgPizza = gerarGraficoPizzaPDF(eventosOrdenadosGraf.slice(0, 8));
+  const insights = gerarInsights(resultadoGraf);
+
+  // ===============================
+  // 🥧 BLOCO ORGANIZADO (PIZZA + INSIGHTS + TOP)
+  // ===============================
+
+  // 🔥 DIMENSÕES PADRÃO
+  const xPizza = margem;
+  const yTopo = y;
+
+  const larguraPizza = 95;
+  const alturaPizza = 95;
+  const alturaBlocoPizza = 95;
+
+  const xInfo = 110;
+  let yInfo = yTopo;
+
+
+  // ===============================
+  // 🍩 PIZZA (MAIOR E ALINHADA)
+  // ===============================
+  if (imgPizza) {
+    pdf.addImage(imgPizza, "PNG", xPizza, yTopo, larguraPizza, alturaPizza);
+  }
+
+  // ===============================
+  // 📊 INSIGHTS (TOPO DIREITA)
+  // ===============================
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(11);
+  pdf.text("INSIGHTS", xInfo, yInfo);
+
+  yInfo += 6;
+
+  pdf.setTextColor(40, 40, 40);
+  pdf.setFontSize(9);
+
+  pdf.text(`• Evento principal: ${insights.principal}`, xInfo, yInfo);
+  yInfo += 5;
+
+  pdf.text(`• % Top: ${insights.percentual}%`, xInfo, yInfo);
+  yInfo += 5;
+
+  pdf.text(`• Total eventos: ${insights.total}`, xInfo, yInfo);
+  yInfo += 8;
+
+  // ===============================
+  // 🔝 TOP EVENTOS (ALINHADO)
+  // ===============================
+  pdf.setTextColor(0, 120, 180);
+  pdf.setFontSize(10);
+  pdf.text("TOP EVENTOS", xInfo, yInfo);
+
+  yInfo += 5;
+
+  pdf.setTextColor(50, 50, 50);
+  pdf.setFontSize(8);
+
+  // 🔥 pega top 12
+  const topEventos = [...resultadoGraf.eventos]
+    .sort((a, b) => b.qtd - a.qtd)
+    .slice(0, 12);
+
+  // 🔥 LISTA ORGANIZADA
+  topEventos.forEach((e, i) => {
+
+    const nome = e.nome.length > 22
+      ? e.nome.substring(0, 22) + "..."
+      : e.nome;
+
+    const linha = `${i + 1}. ${nome} (${e.percentual.toFixed(1)}%)`;
+
+    pdf.text(linha, xInfo, yInfo);
+
+    yInfo += 4;
+
+  });
+
+  // ===============================
+  // 🔥 AVANÇO REAL DO BLOCO
+  // ===============================
+  y += alturaBlocoPizza + 10;
+
+  if (y > 220) {
+    adicionarRodape(pdf, pagina++);
+    pdf.addPage();
+    adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
+    y = 30;
   }
 
   // ===============================
   // 🔷 CABEÇALHO DA TABELA
   // ===============================
-  pdf.setTextColor(0, 229, 255);
+  pdf.setTextColor(0, 120, 180);
   pdf.setFontSize(11);
 
-  pdf.text("EVENTO", 10, y);
+  pdf.text("EVENTO", margem, y);
   pdf.text("QTD", 130, y);
   pdf.text("%", 170, y);
 
   y += 4;
 
   pdf.setDrawColor(0, 229, 255);
-  pdf.line(10, y, 200, y);
+  pdf.line(margem, y, 200, y);
 
   y += 6;
 
@@ -1796,7 +2626,7 @@ function exportarPDFDetalhado() {
     // 🔲 Zebra (linhas alternadas)
     if (index % 2 === 0) {
       pdf.setFillColor(20, 20, 30);
-      pdf.rect(10, y - 4, 190, 6, "F");
+      pdf.rect(margem, y - 4, 190, 6, "F");
 
       pdf.setTextColor(255); // branco
     } else {
@@ -1805,7 +2635,7 @@ function exportarPDFDetalhado() {
 
     pdf.setFontSize(10);
 
-    pdf.text(e.nome, 10, y);
+    pdf.text(String(e.nome || "-"), margem, y);
     pdf.text(String(e.qtd), 130, y);
     pdf.text(`${e.percentual.toFixed(2)}%`, 170, y);
 
@@ -1815,7 +2645,7 @@ function exportarPDFDetalhado() {
     if (y > 270) {
       adicionarRodape(pdf, pagina++);
       pdf.addPage();
-      adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE");
+      adicionarCabecalho(pdf, "RELATORIO DE EXCEDENTE", margem);
       y = 30;
     }
 
@@ -1830,14 +2660,14 @@ function exportarPDFDetalhado() {
 // ===============================
 // 🧾 CABEÇALHO PDF
 // ===============================
-function adicionarCabecalho(pdf, titulo) {
+function adicionarCabecalho(pdf, titulo, margem) {
 
   pdf.setFillColor(5, 1, 13);
   pdf.rect(0, 0, 210, 20, "F");
 
-  pdf.setTextColor(0, 229, 255);
+  pdf.setTextColor(0, 120, 180);
   pdf.setFontSize(14);
-  pdf.text(titulo, 10, 12);
+  pdf.text(titulo, margem, 12); // ✅ agora funciona
 
   pdf.setTextColor(150);
   pdf.setFontSize(8);
@@ -2024,7 +2854,7 @@ function desenharCardMultilinha(pdf, x, y, w, h, titulo, linha1, linha2) {
   // 🔷 LINHA 2 (AZUL - ARQUIVO)
   // ===============================
   if (linha2) {
-    pdf.setTextColor(0, 229, 255);
+    pdf.setTextColor(0, 120, 180);
 
     pdf.text(
       linha2,
@@ -2033,6 +2863,152 @@ function desenharCardMultilinha(pdf, x, y, w, h, titulo, linha1, linha2) {
     );
   }
 }
+
+
+
+
+
+
+
+
+
+
+function gerarGraficoLinhaPDF(timeline) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 800;
+  canvas.height = 300;
+
+  const ctx = canvas.getContext("2d");
+
+  const dados = agruparPorData(timeline);
+
+  const chart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: dados.map(d => d.data),
+      datasets: [{
+        data: dados.map(d => d.qtd),
+        borderColor: "#0077aa",
+        backgroundColor: "rgba(0,119,170,0.25)",
+        tension: 0.4,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: false,
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  const img = canvas.toDataURL("image/png", 1.0);
+  chart.destroy();
+
+  return img;
+}
+
+
+
+
+
+
+
+
+
+
+
+function gerarGraficoPizzaPDF(eventos) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 400;
+  canvas.height = 400;
+
+  const ctx = canvas.getContext("2d");
+
+  const chart = new Chart(ctx, {
+    type: "doughnut",
+    data: {
+      labels: eventos.map(e => e.nome),
+      datasets: [{
+        data: eventos.map(e => e.qtd),
+        backgroundColor: eventos.map((_, i) =>
+          `hsl(${i * 30}, 70%, 50%)`
+        )
+      }]
+    },
+    options: {
+      responsive: false,
+      animation: false,
+      plugins: {
+        legend: { position: "right" }
+      }
+    }
+  });
+
+  const img = canvas.toDataURL("image/png", 1.0);
+  chart.destroy();
+
+  return img;
+}
+
+
+
+
+
+
+
+function gerarInsights(d) {
+  const top = [...d.eventos].sort((a, b) => b.qtd - a.qtd)[0];
+
+  return {
+    principal: top.nome,
+    percentual: top.percentual.toFixed(2),
+    total: d.total
+  };
+}
+
+
+
+
+
+
+function formatarLabel(nome) {
+
+  const palavras = nome.split(" ");
+  const linhas = [];
+
+  let linhaAtual = "";
+
+  palavras.forEach(palavra => {
+
+    // tenta adicionar palavra na linha atual
+    const teste = linhaAtual ? linhaAtual + " " + palavra : palavra;
+
+    // 🔥 limite de caracteres por linha (ajuste fino aqui)
+    if (teste.length > 12) {
+      linhas.push(linhaAtual);
+      linhaAtual = palavra;
+    } else {
+      linhaAtual = teste;
+    }
+
+  });
+
+  // adiciona última linha
+  if (linhaAtual) linhas.push(linhaAtual);
+
+  // 🔥 limita em até 4 linhas
+  return linhas.slice(0, 4);
+}
+
+
+
+
+
+
+
+
 
 
 // ===============================
@@ -2098,6 +3074,7 @@ async function carregarUsuariosOnline() {
 
     const response = await fetchWithAuthRetry(API_BASE + "/usuario/online");
     const lista = await response.json();
+
 
     if (!Array.isArray(lista) || lista.length === 0) {
       container.innerHTML = "Nenhum usuário online";
@@ -2256,4 +3233,148 @@ window.addEventListener("load", () => {
       el.classList.add("show");
     }, index * 200); // delay progressivo
   });
+});
+
+// ===============================
+// 🤖 EFEITO IA (DIGITA / APAGA / LOOP)
+// 🔥 VERSÃO EVOLUÍDA E ESCALÁVEL
+// ===============================
+
+// ===============================
+// 📚 FRASES ORGANIZADAS POR ETAPA
+// ===============================
+const frases = {
+  inicio: [
+    "Inicializando análise...",
+    "Carregando estrutura de dados",
+    "Preparando ambiente",
+    "Configurando sistema"
+  ],
+  processamento: [
+    "Processando dados...",
+    "Lendo arquivo CSV",
+    "Normalizando colunas",
+    "Validando registros",
+    "Filtrando inconsistências",
+    "Estruturando informações"
+  ],
+  analise: [
+    "Detectando padrões",
+    "Analisando comportamento",
+    "Identificando anomalias",
+    "Correlacionando dados",
+    "Aplicando regras inteligentes"
+  ],
+  insight: [
+    "Gerando insights",
+    "Calculando métricas",
+    "Extraindo informações relevantes",
+    "Montando relatório",
+    "Organizando resultados"
+  ],
+  final: [
+    "Análise concluída",
+    "Processo finalizado",
+    "Dados prontos para visualização",
+    "Tudo pronto 🚀"
+  ]
+};
+
+// ===============================
+// 🎯 MAPEAMENTO DE ETAPAS → ESTILO
+// ===============================
+const etapas = ["inicio", "processamento", "analise", "insight", "final"];
+
+function obterClasse(etapa) {
+  if (etapa === "analise" || etapa === "insight") return "typing-warning";
+  if (etapa === "final") return "typing-success";
+  return "typing-processing";
+}
+
+// ===============================
+// 🎲 CONTROLE DE FRASES (SEM REPETIÇÃO)
+// ===============================
+let etapaAtual = 0;
+let ultimoTexto = "";
+
+function pegarFrase() {
+  const etapa = etapas[etapaAtual];
+  const lista = frases[etapa];
+
+  let texto;
+
+  // evita repetir a mesma frase seguida
+  do {
+    texto = lista[Math.floor(Math.random() * lista.length)];
+  } while (texto === ultimoTexto);
+
+  ultimoTexto = texto;
+
+  return {
+    texto,
+    classe: obterClasse(etapa)
+  };
+}
+
+// ===============================
+// ⚙️ CONTROLE DE DIGITAÇÃO
+// ===============================
+const elemento = document.getElementById("typing-text");
+
+let charIndex = 0;
+let apagando = false;
+let atual = pegarFrase();
+
+// ===============================
+// 🔄 LOOP PRINCIPAL
+// ===============================
+function loopDigitacao() {
+
+  // aplica estilo da etapa
+  elemento.classList.remove("typing-processing", "typing-warning", "typing-success");
+  elemento.classList.add(atual.classe);
+
+  if (!apagando) {
+    // DIGITANDO
+    elemento.textContent = atual.texto.substring(0, charIndex + 1);
+    charIndex++;
+
+    if (charIndex === atual.texto.length) {
+      apagando = true;
+
+      // ⏸ pausa maior quando termina frase
+      setTimeout(loopDigitacao, 1200);
+      return;
+    }
+
+  } else {
+    // APAGANDO
+    elemento.textContent = atual.texto.substring(0, charIndex - 1);
+    charIndex--;
+
+    if (charIndex === 0) {
+      apagando = false;
+
+      // 🔄 avança etapa gradualmente
+      etapaAtual = (etapaAtual + 1) % etapas.length;
+
+      // 🎯 pega nova frase
+      atual = pegarFrase();
+    }
+  }
+
+  // ⚡ velocidade dinâmica
+  const velocidade = apagando ? 30 : 55;
+
+  setTimeout(loopDigitacao, velocidade);
+}
+
+// ===============================
+// 🚀 INICIALIZAÇÃO
+// ===============================
+window.addEventListener("load", () => {
+  elemento.classList.add("typing-active");
+
+  // pequena garantia de render
+  setTimeout(loopDigitacao, 100);
 });

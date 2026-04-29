@@ -1,3 +1,62 @@
+/* ================= VARIÁVEIS GLOBAIS ================= */
+:root {
+  /* ================= BASE ================= */
+  --bg-main: #000000;
+  --bg-card: rgba(255, 255, 255, 0.03);
+
+  /* ================= CORES PRINCIPAIS ================= */
+  --primary: #00e5ff;
+  --primary-soft: rgba(0, 229, 255, 0.15);
+  --primary-strong: #00f0ff;
+  --primary-meta: #00e5ffaa;
+
+  --secondary: #7c3aed;
+  --secondary-soft: rgba(124, 58, 237, 0.15);
+  --secondary-strong: #9b5cff;
+
+  /* ================= NOVAS CORES DE APOIO ================= */
+  --accent: #00ffaa;
+  /* verde neon suave */
+  --accent-soft: rgba(0, 255, 170, 0.12);
+
+  --purple-dark: #2a0f5c;
+  --blue-dark: #020617;
+  --blue-mega-dark: #00020a;
+
+  --bg-dark-green: #00e5ff55;
+
+  /* ================= TEXTO ================= */
+  --text-main: #e6e6e6;
+  --text-soft: #9aa0a6;
+  --text-muted: #6b7280;
+  --text-dark: #000;
+
+  /* ================= BORDAS ================= */
+  --border-soft: rgba(255, 255, 255, 0.08);
+  --border-neon: rgba(0, 229, 255, 0.35);
+  --border-secondary: rgba(124, 58, 237, 0.35);
+
+  /* ================= GLOW ================= */
+  --glow-soft: 0 0 10px rgba(0, 229, 255, 0.2);
+  --glow-strong: 0 0 25px rgba(0, 229, 255, 0.6);
+  --glow-purple: 0 0 20px rgba(124, 58, 237, 0.5);
+
+  /* ================= STATUS ================= */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --btn-pdf: #FF1744;
+  --btn-excel: #00E676;
+
+  /* ================= GRADIENTES ================= */
+  --gradient-primary: linear-gradient(90deg, #00e5ff, #7c3aed);
+  --gradient-secundary: linear-gradient(90deg, #7c3aed6c, #00e5ff2d);
+  --gradient-soft: linear-gradient(90deg, rgba(0, 229, 255, 0.15), rgba(124, 58, 237, 0.15));
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01));
+
+  /* ============== FUNDO ======================*/
+  --fundo: #060606;
+}
+
 /* ================= RESET ================= */
 * {
   box-sizing: border-box;
@@ -11,20 +70,25 @@ body {
 
 /* ================= BASE ================= */
 body {
-  background: #05010d;
-  color: #fff;
-  font-family: Segoe UI, sans-serif;
+  background: var(--blue-mega-dark);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
   padding: 30px;
 }
 
 /* ================= HEADER ================= */
 
 .topo {
-  margin-bottom: 35px;
+  margin-bottom: 20px;
   padding: 15px 20px;
-  border-bottom: 1px solid #00e5ff33;
   border-radius: 12px;
-  box-shadow: 0 0 15px #00e5ff55;
+  box-shadow:
+    0 0 20px var(--primary-soft),
+    0 0 40px var(--secondary-soft);
+  background: var(--bg-main);
+  border: 1px solid var(--primary);
+  position: relative;
+  z-index: 1000;
 }
 
 /* ================= PRIMEIRA LINHA ================= */
@@ -35,11 +99,29 @@ body {
   align-items: center;
 }
 
+/* ================ SEGUNDA-LINHA ====================*/
 
+.topo-linha-2 {
+  margin-bottom: 12px;
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  background-color: var(--bg-main);
+  /* 🔥 SOMBRA SUAVE (sem exagero) */
+  box-shadow:
+    0 0 10px rgba(0, 229, 255, 0.08),
+    inset 0 0 10px rgba(255, 255, 255, 0.02);
+
+  backdrop-filter: blur(6px);
+  transition: all 0.3s ease;
+}
 
 
 .gradient-title {
-  background: linear-gradient(90deg, #00e5ff, #7c3aed);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -105,23 +187,42 @@ body {
 
 /* ================= STATUS TOPO ================= */
 .status-topo {
-  text-align: center;
-  margin-top: 8px;
-  font-size: 14px;
-  color: #aaa;
+  font-size: 25px;
+  font-weight: 600;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+
+  border: 1px solid transparent;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+
   transition: all 0.3s ease;
 }
 
-/* APTO */
+/* ================= STATUS APTO ================= */
 .status-topo.apto {
   color: #00ff88;
-  text-shadow: 0 0 10px #00ff88;
+
+  border-color: rgba(0, 255, 136, 0.4);
+
+  background: rgba(0, 255, 136, 0.08);
+
+  box-shadow: 0 0 8px rgba(0, 255, 136, 0.25);
 }
 
-/* NÃO APTO */
+/* ================= STATUS NÃO APTO ================= */
 .status-topo.nao-apto {
-  color: #ff3b3b;
-  text-shadow: 0 0 10px #ff3b3b;
+  color: #ff4d4d;
+
+  border-color: rgba(255, 77, 77, 0.4);
+
+  background: rgba(255, 77, 77, 0.08);
+
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.25);
 }
 
 /* ================= DROPDOWN MASTER ================= */
@@ -251,40 +352,113 @@ body {
 
 .btn-logout:hover {
   background: #ff3b3b;
-  color: #000;
+  color: var(--text-dark);
   box-shadow: 0 0 15px #ff3b3b;
 }
 
 /* ================= SUBTÍTULO ================= */
 
 .subtitulo-topo {
-  text-align: center;
-  margin-top: 5px;
-  font-size: 14px;
-  color: #aaa;
+  font-size: 25px;
+  font-weight: 500;
+
+  color: var(--text-soft);
+  letter-spacing: 0.5px;
 }
+
+/* remove margem padrão do <p> */
+.subtitulo-topo p {
+  margin: 0;
+}
+
+/* ================= EFEITO DIGITAÇÃO (INTEGRADO AO TEMA) ================= */
+#typing-text {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+  /* 🔥 glow elegante com PRIMARY */
+  text-shadow: 0 0 6px var(--primary-soft);
+}
+
+/* ✨ CURSOR MODERNO */
+#typing-text::after {
+  content: "|";
+  margin-left: 6px;
+  /* 🎯 GRADIENTE NO CURSOR */
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  animation: blink 1s infinite;
+}
+
+/* PISCAR */
+@keyframes blink {
+
+  0%,
+  50%,
+  100% {
+    opacity: 1;
+  }
+
+  25%,
+  75% {
+    opacity: 0;
+  }
+}
+
+/* ================= EFEITO ATIVO (ENQUANTO DIGITA) ================= */
+.typing-active {
+  text-shadow:
+    0 0 8px var(--primary-soft),
+    0 0 16px rgba(0, 229, 255, 0.15);
+}
+
+/* ================= FRASES DE SISTEMA ================= */
+.typing-processing {
+  color: var(--primary);
+}
+
+.typing-success {
+  color: var(--accent);
+  text-shadow: 0 0 8px var(--accent-soft);
+}
+
+.typing-warning {
+  color: var(--secondary);
+  text-shadow: 0 0 8px var(--secondary-soft);
+}
+
+
+
+
+.layout {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+
 
 /* ================= CONTAINER PRINCIPAL (UPLOAD + FILTROS) ================= */
 .container {
-  margin: 25px 0;
+  margin: 5px 0 0px 0;
   padding: 20px 25px;
-
-  /* 🔥 VISUAL IGUAL AO TOPO */
-  border: 1px solid #00e5ff33;
+  background: var(--bg-main);
+  border: 1px solid var(--primary);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-
-  box-shadow:
-    0 0 15px #00e5ff22,
-    inset 0 0 10px #00e5ff11;
-
   backdrop-filter: blur(10px);
-
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
   gap: 25px;
-  box-shadow: 0 0 15px #00e5ff55;
+  width: 60%;
 }
 
 /* 🔥 HOVER PREMIUM */
@@ -299,14 +473,14 @@ body {
 
 /* Linha divisória estilo premium */
 .upload {
-  padding-bottom: 20px;
-  border-bottom: 1px solid #00e5ff22;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-neon);
 }
 
 /* ================= UPLOAD / BOTÕES ================= */
 .upload,
 .acoes {
-  margin: 20px 0;
+  margin: 5px 0;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -314,7 +488,7 @@ body {
 
 .progresso {
   font-size: 16.5px;
-  color: #fff;
+  color: var(--text-main);
   min-width: 100px;
   text-align: center;
 }
@@ -329,8 +503,8 @@ button {
 /* Botão file customizado */
 .btn-file {
   background: transparent;
-  color: #00e5ff;
-  border: 2px solid #00e5ff;
+  color: var(--primary);
+  border: 2px solid var(--secondary);
   padding: 7px 15px;
   border-radius: 8px;
   cursor: pointer;
@@ -340,8 +514,10 @@ button {
 }
 
 .btn-file:hover {
-  background: #00e5ff;
+  background: var(--primary);
   color: #000;
+  box-shadow: var(--glow-strong);
+  border: none;
 }
 
 
@@ -352,7 +528,7 @@ button {
   /* controla largura */
   height: 60px;
   /* altura inicial */
-  border: 2px solid #00e5ff64;
+  border: 2px solid var(--border-neon);
   border-radius: 8px;
   padding: 8px 10px;
   overflow-y: auto;
@@ -370,16 +546,16 @@ button {
 /* Texto dos arquivos */
 .arquivos-info {
   font-size: 13px;
-  color: #00e5ff;
+  color: var(--secondary);
   line-height: 1.4;
   word-break: break-word;
 }
 
 /* Botões padrão */
 button {
+  color: var(--primary);
+  border: 2px solid var(--secondary);
   background: transparent;
-  color: #00e5ff;
-  border: 2px solid #00e5ff;
   padding: 13.5px 20px;
   border-radius: 8px;
   cursor: pointer;
@@ -387,9 +563,10 @@ button {
 }
 
 button:hover {
-  background: #00e5ff;
-  color: #000;
-  box-shadow: 0 0 20px #00e5ff;
+  background: var(--primary);
+  color: var(--text-dark);
+  box-shadow: var(--glow-strong);
+  border: none;
 }
 
 .btnProcessar {
@@ -420,10 +597,14 @@ button:hover {
   margin-top: 25px;
 }
 
+.filtros label {
+  color: var(--secondary);
+}
+
 select {
-  background: #05010d;
-  color: #00e5ff;
-  border: 2px solid #00e5ff;
+  background: var(--bg-main);
+  color: var(--primary);
+  border: 2px solid var(--border-neon);
   padding: 8px;
   border-radius: 8px;
 }
@@ -431,22 +612,43 @@ select {
 /* ================= CARDS ================= */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  /* grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); */
+  grid-template-columns: repeat(2, 1fr);
+  /* 🔥 força 2 colunas */
   gap: 20px;
+  width: 40%;
+  align-content: start;
+  /* evita esticar feio */
 }
 
 .card {
-  margin-top: 25px;
+  margin-top: 5px;
   padding: 20px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 15px #00e5ff55;
+  background: var(--bg-main);
+  border: 1px solid var(--primary);
   transition: all 0.3s ease;
 }
 
 .card:hover {
-  box-shadow: 0 0 25px #00e5ff;
+  box-shadow:
+    0 0 20px var(--primary-soft),
+    0 0 40px var(--secondary-soft);
   transform: translateY(-2px);
+}
+
+/* 🎯 Transição dos elementos internos */
+.card span,
+.card h2 {
+  transition: color 0.3s ease;
+}
+
+.card:hover span {
+  color: var(--secondary);
+}
+
+.card:hover h2 {
+  color: var(--primary);
 }
 
 /* ===================================================== */
@@ -464,75 +666,148 @@ select {
   transform: translateY(-2px);
 } */
 
+.card-meta {
+  grid-column: span 2;
+}
+
 .card-meta h3 {
   margin-top: 8px;
   font-size: 18px;
-  color: #00e5ff;
+  color: var(--primary);
 }
 
 .card-meta h2 {
   margin-top: 8px;
   font-size: 18px;
-  color: #00e5ff;
+  color: var(--primary);
 }
 
 .card-meta small {
   display: block;
   margin-top: 6px;
   font-size: 13px;
-  color: #00e5ffaa;
+  color: var(--primary-meta);
   word-break: break-word;
 }
 
 /* ================= CONTEÚDO ================= */
 .conteudo {
-  margin-top: 40px;
+  margin-top: 20px;
   display: grid;
-  gap: 40px;
+  gap: 20px;
+}
+
+/* ================== Gráfico ======================*/
+/* 🔥 CONTAINER PAI (SEM BORDA) */
+.grafico-wrapper {
+  display: none;
+  /* começa escondido */
+  width: 100%;
+  gap: 20px;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.4s ease;
+
+}
+
+/* 🔥 quando ativo */
+.grafico-wrapper.ativo {
+  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+  animation: fadeIn 0.4s ease;
+}
+
+/* ✨ animação suave */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 🔥 containers internos */
+.grafico-container {
+  background: var(--bg-main);
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  padding: 15px;
+  backdrop-filter: blur(12px);
+}
+
+/* 🔥 70% / 30% */
+#graficoBarrasWrapper {
+  width: 60%;
+}
+
+#graficoPizzaWrapper {
+  width: 40%;
+}
+
+/* 🔥 altura REAL */
+#graficoBarras {
+  width: 100% !important;
+  height: 400px !important;
+}
+
+#graficoPizza {
+  width: 100% !important;
+  height: 400px !important;
+}
+
+#graficoLinhaWrapper {
+  width: 100%;
+}
+
+#graficoLinha {
+  width: 100% !important;
+  height: 400px !important;
 }
 
 /* ================= TABELA PREMIUM ================= */
 table {
   width: 100%;
-  border-collapse: collapse;
+  /* border-collapse: collapse; */
   font-size: 14px;
-
-  /* 💎 visual container */
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid #00e5ff22;
+  background: var(--bg-main);
+  border-top: 1px solid var(--primary);
+  border-bottom: 1px solid var(--primary);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 0 15px #00e5ff55;
 }
 
 /* ================= HEADER ================= */
 thead {
-  background: linear-gradient(90deg, #00e5ff22, #00e5ff05);
+  background: var(--gradient-secundary);
   backdrop-filter: blur(6px);
 }
 
 thead th {
   padding: 14px;
-  color: #00e5ff;
+  color: var(--primary);
   font-weight: 600;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #00e5ff33;
 }
 
 /* ================= LINHAS ================= */
 tbody tr {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--secondary-soft);
   transition: all 0.25s ease;
 }
 
 /* 🔥 efeito zebra (MUITO importante p/ leitura) */
 tbody tr:nth-child(even) {
-  background: rgba(255, 255, 255, 0.015);
+  background: var(--blue-mega-dark);
 }
 
 /* 🔥 hover premium */
 tbody tr:hover {
-  background: rgba(0, 229, 255, 0.12);
+  background: var(--secondary-soft);
   transform: translateX(4px);
 }
 
@@ -553,7 +828,7 @@ tbody tr:nth-child(3) td:first-child {
 /* ================= CÉLULAS ================= */
 tbody td {
   padding: 12px 14px;
-  color: #ddd;
+  color: var(--text-main);
 }
 
 /* 🔢 alinhamento números */
@@ -567,19 +842,25 @@ tbody td:nth-child(3) {
 
 /* 🔥 destaque números */
 tbody td:nth-child(2) {
-  color: #00e5ff;
+  color: var(--primary);
   font-weight: 600;
 }
 
 tbody td:nth-child(3) {
-  color: #00ffaa;
+  color: var(--accent);
 }
 
 /* ================= LINHA ATIVA ================= */
 .linha-ativa {
-  background: linear-gradient(90deg, #00e5ff33, transparent);
-  border-left: 3px solid #00e5ff;
+  background: linear-gradient(90deg, var(--bg-dark-green), transparent);
+  border-left: 3px solid var(--primary);
   font-weight: 600;
+}
+
+tbody tr.linha-ativa,
+tbody tr.linha-ativa:hover,
+tbody tr:nth-child(even).linha-ativa {
+  background: linear-gradient(90deg, var(--bg-dark-green), transparent);
 }
 
 /* ================= SCROLL (SE MUITOS DADOS) ================= */
@@ -603,7 +884,7 @@ tbody::-webkit-scrollbar {
 }
 
 tbody::-webkit-scrollbar-thumb {
-  background: #00e5ff55;
+  background: var(--bg-dark-green);
   border-radius: 10px;
 }
 
@@ -619,7 +900,7 @@ tbody::-webkit-scrollbar-thumb {
 .barra {
   width: 100%;
   height: 6px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--blue-dark);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -627,113 +908,29 @@ tbody::-webkit-scrollbar-thumb {
 /* preenchimento */
 .barra div {
   height: 100%;
-  background: linear-gradient(90deg, #00e5ff, #00ffaa);
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
   transition: width 0.4s ease;
 }
 
 /* texto do percentual */
 .percentual-texto {
   font-size: 11px;
-  color: #aaa;
+  color: var(--text-main);
   text-align: right;
 }
 
 
-/* ================= GRÁFICO ================= */
-
-/* Wrapper agora suporta 2 gráficos lado a lado */
-.grafico-wrapper {
-  width: 100%;
-  min-height: 360px;
-  height: auto;
-  overflow: hidden;
-  margin-bottom: 10px;
-
-  /* 🔥 GRID PARA 2 GRÁFICOS */
-  display: none;
-  grid-template-columns: 2fr 1fr;
-  gap: 20px;
-
-  /* 💎 visual premium */
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid #00e5ff22;
-  border-radius: 12px;
-  padding: 15px;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 0 25px #00e5ff22;
-  opacity: 0;
-  transform: scale(0.95) translateY(20px);
-  transition: all 0.6s ease;
-}
-
-/* efeito hover no container */
-.grafico-wrapper:hover {
-  box-shadow: 0 0 35px #00e5ff55;
-  transform: scale(1.005);
-  transition: 0.3s;
-}
-
-/* Wrapper ativo */
-.grafico-wrapper.ativo {
-  display: grid;
-  opacity: 1;
-  transform: scale(1) translateY(0);
-}
-
-/* Canvas padrão */
-#grafico,
-#graficoPizza {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.grafico-box {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 🔥 FORÇA FORMATO QUADRADO */
-.grafico-box canvas {
-  /* max-width: 280px; */
-  max-height: 350px;
-  width: 100% !important;
-  height: auto !important;
-  filter: drop-shadow(0 0 10px #00e5ff55);
-  transition: opacity 0.3s ease;
-}
-
-/* 🔥 DIVISOR VISUAL ENTRE OS GRÁFICOS */
-#grafico {
-  border-right: 1px solid #00e5ff33;
-  padding-right: 10px;
-}
-
-#graficoPizza {
-  padding-left: 10px;
-}
-
 /* 📱 RESPONSIVO */
 @media (max-width: 768px) {
-  .grafico-wrapper {
-    grid-template-columns: 1fr;
-    height: auto;
+  .acoes {
+    flex-direction: column;
+    align-items: stretch;
   }
 
-  #grafico {
-    border-right: none;
-    border-bottom: 1px solid #00e5ff33;
-    padding-bottom: 10px;
+  .grupo {
+    width: 100%;
   }
 
-  #graficoPizza {
-    padding-left: 0;
-    max-width: 300px;
-    max-height: 300px;
-    margin: auto;
-  }
 }
 
 /*Acessibilidade*/
@@ -748,29 +945,22 @@ tbody::-webkit-scrollbar-thumb {
 
 /* ================= CONTAINER TABELA / FOOT ================= */
 .container-footer {
-  margin-top: 30px;
+  margin-top: 20px;
   padding: 10px;
-
-  border: 1px solid #00e5ff22;
+  border: 1px solid var(--primary);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.015);
-
-  /* 🔥 SEM GLOW FORTE */
-  box-shadow: 0 0 15px #00e5ff55;
-
+  background: var(--bg-main);
   /* necessário pro efeito hover interno */
   position: relative;
   overflow: hidden;
-
   transition: all 0.3s ease;
 }
 
 /* ================= AÇÕES FULL WIDTH ================= */
 /* CONTAINER PRINCIPAL */
-
 .acoes {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: 20px;
   width: 100%;
@@ -782,7 +972,7 @@ tbody::-webkit-scrollbar-thumb {
 .grupo {
   display: flex;
   gap: 15px;
-  flex: 1;
+  flex: 1 1 48%;
   /* 🔥 ocupa espaço disponível */
 }
 
@@ -790,9 +980,10 @@ tbody::-webkit-scrollbar-thumb {
 .btn-apto,
 .btn-nao-apto {
   flex: 1;
-  /* 🔥 cresce automaticamente */
-  min-width: 180px;
-  /* evita ficar muito pequeno */
+  min-width: 0;
+  /* 🔥 evita quebra estranha */
+  height: 45px;
+  /* 🔥 mesma altura */
 }
 
 .grupo-status {
@@ -808,12 +999,12 @@ tbody::-webkit-scrollbar-thumb {
 } */
 
 .btn-pdf:hover {
-  background: #FF1744;
+  background: var(--btn-pdf);
   box-shadow: 0 0 18px rgba(229, 57, 53, 0.7);
 }
 
 .btn-excel:hover {
-  background: #00E676;
+  background: var(--btn-excel);
   box-shadow: 0 0 18px rgba(0, 200, 83, 0.7);
 }
 
@@ -824,50 +1015,42 @@ tbody::-webkit-scrollbar-thumb {
   /* 🔥 padronizado */
 }
 
-/* DIVISOR CENTRAL */
-.divisor {
-  width: 2px;
-  height: 40px;
-  background: #00e5ff;
-  opacity: 0.5;
-}
-
 /* ================= BOTÃO APTO (VERDE NEON) ================= */
 .btn-apto {
-  border: 2px solid #00ff88;
-  color: #00ff88;
+  border: 2px solid var(--success);
+  color: var(--success);
 }
 
 .btn-apto:hover {
-  background: #00ff88;
-  color: #000;
-  box-shadow: 0 0 20px #00ff88;
+  background: var(--success);
+  color: var(--text-dark);
+  box-shadow: 0 0 20px var(--success);
 }
 
 /* estado ativo */
 .btn-apto.ativo {
-  background: #00ff88;
-  color: #000;
-  box-shadow: 0 0 25px #00ff88;
+  background: var(--success);
+  color: var(--text-dark);
+  box-shadow: 0 0 25px var(--success);
 }
 
 /* ================= BOTÃO NÃO APTO (VERMELHO NEON) ================= */
 .btn-nao-apto {
-  border: 2px solid #ff3b3b;
-  color: #ff3b3b;
+  border: 2px solid var(--danger);
+  color: var(--danger);
 }
 
 .btn-nao-apto:hover {
-  background: #ff3b3b;
-  color: #000;
-  box-shadow: 0 0 20px #ff3b3b;
+  background: var(--danger);
+  color: var(--text-dark);
+  box-shadow: 0 0 20px var(--danger);
 }
 
 /* estado ativo */
 .btn-nao-apto.ativo {
-  background: #ff3b3b;
-  color: #000;
-  box-shadow: 0 0 25px #ff3b3b;
+  background: var(--danger);
+  color: var(--text-dark);
+  box-shadow: 0 0 25px var(--danger);
 }
 
 @media screen and (max-width: 768px) {
@@ -883,12 +1066,8 @@ tbody::-webkit-scrollbar-thumb {
   .grupo-status {
     justify-content: space-between;
   }
-
-  .divisor {
-    display: none;
-    /* 🔥 remove no mobile */
-  }
 }
+
 
 /* ================= PULSE NEON ================= */
 @keyframes neonPulseBtn {
@@ -950,15 +1129,19 @@ tbody::-webkit-scrollbar-thumb {
   transition-delay: 1s;
 }
 
+.delay-6 {
+  transition-delay: 1.2s;
+}
 
 /*======================================================*/
-
 .top1 {
-  background: linear-gradient(90deg, rgba(0, 229, 255, 0.2), transparent);
-  border-left: 3px solid #00e5ff;
+  background: linear-gradient(90deg, var(--purple-dark), transparent);
+  border-left: 3px solid var(--primary);
 }
 
 .destaque-maximo {
-  box-shadow: 0 0 12px rgba(0, 229, 255, 0.6);
+  box-shadow:
+    0 0 20px var(--primary-soft),
+    0 0 40px var(--secondary-soft);
   transform: scale(1.01);
 }

@@ -4,6 +4,7 @@ import com.geradorexcedente.excedente.model.EventoDTO;
 import com.geradorexcedente.excedente.model.ResultadoDTO;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import com.geradorexcedente.excedente.model.EventoTimelineDTO;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -76,6 +77,9 @@ public class ExcedenteService {
             Map<String, EventoInfo> contagem = new HashMap<>();
             String placa = null;
             int total = 0;
+
+            // 🔥 NOVO (AQUI)
+            List<EventoTimelineDTO> timeline = new ArrayList<>();
 
             // 🔥 INTERVALO DE TRANSMISSÃO (VINDO DO CSV)
             String intervaloCapturado = null;
@@ -153,6 +157,13 @@ public class ExcedenteService {
                     }
 
                     // ===============================
+                    // 📈 TIMELINE (NOVO)
+                    // ===============================
+                    timeline.add(new EventoTimelineDTO(
+                            teleevento,
+                            dataEvento.format(FORMATTER_CSV)));
+
+                    // ===============================
                     // CONTAGEM
                     // ===============================
                     contagem.putIfAbsent(teleevento, new EventoInfo(comunicacao));
@@ -175,7 +186,6 @@ public class ExcedenteService {
                     contagem.get(evento).qtd++;
                 }
             }
-
             // ============================================================
             // VALIDAÇÃO FINAL
             // ============================================================
@@ -208,6 +218,7 @@ public class ExcedenteService {
                     placa,
                     total,
                     contagem,
+                    timeline,
                     dataInicioStr,
                     dataFimStr,
                     file.getOriginalFilename(),
@@ -223,6 +234,7 @@ public class ExcedenteService {
             String placa,
             int total,
             Map<String, EventoInfo> contagem, // 🔥 ALTERADO
+            List<EventoTimelineDTO> timeline, // 👈 NOVO
             String dataInicio,
             String dataFim,
             String nomeArquivo,
@@ -255,6 +267,7 @@ public class ExcedenteService {
                 total,
                 intervaloTransmissao, // 🔥 vindo do CSV
                 eventos,
+                timeline,
                 dataInicio,
                 dataFim,
                 nomeArquivo);
