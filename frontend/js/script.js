@@ -34,6 +34,8 @@ const cacheFiltros = new Map();
 
 const { jsPDF } = window.jspdf;
 
+let datasetSelecionado = null;
+
 
 //====================================================================
 
@@ -939,6 +941,11 @@ function renderizar(d) {
         scales: {
           x: {
             ticks: {
+              callback: function (value) {
+                const label = this.getLabelForValue(value);
+
+                return Array.isArray(label) ? label : label.split(' ');
+              },
               color: "#aaa",
               maxRotation: 0,
               minRotation: 0,
@@ -947,6 +954,8 @@ function renderizar(d) {
               align: 'center',
               autoSkip: false, // 🔥 MOSTRA TODOS
               maxTicksLimit: 12,
+              // autoSkip: true,          // 🔥 deixa o Chart respirar
+              // maxTicksLimit: 10,        // 🔥 reduz densidade
               padding: 10, // 🔥 dá respiro
               font: {
                 size: 10 // 🔥 diminui um pouco
@@ -1184,6 +1193,9 @@ function renderizar(d) {
   }
   console.log("Eventos para linha:", d.eventos.slice(0, 5));
 
+  console.log(
+    Object.keys(Chart.registry.plugins.items)
+  );
   // ===============================
   // 📈 GRÁFICO LINHA (INTEGRADO)
   // ===============================
@@ -1242,10 +1254,30 @@ function renderizar(d) {
       chartLinha = new Chart(ctxLinha, {
         type: "line",
         data: {
+          display: false,
           labels: multi.labels,
           datasets: multi.datasets // 🔥 CORRETO
         },
         options: {
+
+          onClick: (evt, elements, chart) => {
+            const points = chart.getElementsAtEventForMode(
+              evt,
+              'nearest',
+              { intersect: false },
+              true
+            );
+
+            if (points.length) {
+              const { datasetIndex } = points[0];
+
+              // 🔁 toggle (clica de novo desmarca)
+              datasetSelecionado =
+                datasetSelecionado === datasetIndex ? null : datasetIndex;
+
+              chart.update();
+            }
+          },
           responsive: true,
           maintainAspectRatio: false,
 
@@ -1275,6 +1307,24 @@ function renderizar(d) {
                 }
               }
             }, // 🔥 importante pra múltiplas linhas
+
+
+            // 💣 DESATIVA OS NÚMEROS
+            datalabels: {
+              display: (context) => {
+                // 🔥 mostra só se dataset estiver selecionado
+                return context.datasetIndex === datasetSelecionado;
+              },
+
+              color: '#fff',
+              font: {
+                weight: 'bold',
+                size: 10
+              },
+
+              align: 'top',
+              offset: 6
+            },
 
             title: {
               display: true,
